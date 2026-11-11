@@ -22,9 +22,9 @@ This skill coordinates a production-grade software development company composed 
 | **المعمارية (Author)** | 🏛️ | `architect` | مهندس المعمارية، تصميم النظم، وعقود الـ APIs | `backend-architect`<br>`c4-architecture-c4-architecture`<br>`architecture-patterns`<br>`api-design-principles` | `google-developer-knowledge`<br>`mobbin` | `inherit` |
 | **المعمارية (Critic)** | 🧐 | `arch-critic` | ناقد المعمارية، فحص الاختناقات والتعقيد الزائد | `adversarial-critic`<br>`architect-review`<br>`karpathy-guidelines`<br>`multi-cloud-architecture` | `google-developer-knowledge` | `inherit` |
 | **الباك إند (Author)** | ⚙️ | `backend-dev` | برمجة السيرفر، قواعد البيانات، وعمليات الترحيل | `backend-architect`<br>`backend-development-feature-development`<br>`database-migrations-sql-migrations`<br>`sql-optimization-patterns` | `supabase`<br>`firebase`<br>Database MCPs | `share` |
-| **الباك إند (Critic)** | 🛡️ | `backend-critic` | ناقد الأمان، فحص ثغرات OWASP والأداء واستعلامات SQL | `adversarial-critic`<br>`backend-security-coder`<br>`simon-willison-patterns`<br>`database-optimizer` | `supabase`<br>`firebase` | `inherit` |
+| **الباك إند (Critic)** | 🛡️ | `backend-critic` | ناقد الأمان، فحص ثغرات OWASP والتدقيق الأمني واستعلامات SQL | `adversarial-critic`<br>`security-audit`<br>`backend-security-coder`<br>`simon-willison-patterns`<br>`database-optimizer` | `supabase`<br>`firebase` | `inherit` |
 | **الفرونت إند (Author)** | 🎨 | `frontend-dev` | بناء واجهات المستخدم المتجاوبة، التصميم، والحركات | `frontend-developer`<br>`ui-ux-designer`<br>`tailwind-design-system`<br>`frontend-ui-engineering` | `chrome-devtools-plugin`<br>`vercel-plugin` | `share` |
-| **الفرونت إند (Critic)** | 👁️ | `frontend-critic` | فحص شاشات الموبايل 360px+، التباين، والوصولية | `adversarial-critic`<br>`ui-visual-validator`<br>`wcag-audit-patterns`<br>`frontend-security-coder` | `chrome-devtools-plugin` | `inherit` |
+| **الفرونت إند (Critic)** | 👁️ | `frontend-critic` | فحص وتدقيق الواجهات، شاشات الموبايل 360px+، التباين، والوصولية | `adversarial-critic`<br>`better-interface`<br>`ui-visual-validator`<br>`wcag-audit-patterns`<br>`frontend-security-coder` | `chrome-devtools-plugin` | `inherit` |
 | **الاختبارات (Author)** | 🧪 | `qa-tester` | أتمتة الاختبارات الشاملة E2E ودورة TDD | `test-automator`<br>`e2e-testing-patterns`<br>`tdd-orchestrator`<br>`hashimoto-harness-loop` | `chrome-devtools-plugin`<br>`testsprite` | `inherit` |
 | **الاعتماد (Critic)** | 🚀 | `release-gatekeeper`| حارس بوابة النشر النهائي وفحص سلامة البناء | `adversarial-critic`<br>`verification-before-completion`<br>`deployment-engineer`<br>`cicd-automation-workflow-automate`<br>`observability-engineer` | `chrome-devtools-plugin` | `inherit` |
 | **مراقبة الخمول** | 📡 | `monitor` | مراقب خمول السرب وتنبيه الإيجنت المتوقفة | `swarm_monitor` | System Watcher | `inherit` |
@@ -103,7 +103,7 @@ swarm{action: "add", name: "backend-dev", workspace: "share",
   brief: "Your visual identity is ⚙️ [Backend Dev]. Prefix your board posts with '⚙️ [Backend]:'. Load skills: 'backend-architect', 'backend-development-feature-development', 'database-migrations-sql-migrations', 'sql-optimization-patterns'. Use 'supabase' or 'firebase' plugins if applicable. Wait for @arch-critic approval. Implement server logic, database models, and API endpoints in your share workspace. When complete, tag @backend-critic with diff details."}
 
 swarm{action: "add", name: "backend-critic", workspace: "inherit",
-  brief: "Your visual identity is 🛡️ [Backend Critic]. Prefix your board posts with '🛡️ [Backend-Critic]:'. Load skills: 'adversarial-critic', 'backend-security-coder', 'simon-willison-patterns', 'database-optimizer'. Wait for @backend-dev. Audit code for OWASP vulnerabilities, SQL injection, unindexed queries, and prompt injection defense. If flawed, tag @backend-dev with fixes. When approved, tag @qa-tester."}
+  brief: "Your visual identity is 🛡️ [Backend Critic]. Prefix your board posts with '🛡️ [Backend-Critic]:'. Load skills: 'adversarial-critic', 'security-audit', 'backend-security-coder', 'simon-willison-patterns', 'database-optimizer'. Wait for @backend-dev. Audit code for OWASP vulnerabilities, security architecture risks, SQL injection, unindexed queries, and prompt injection defense. If flawed, tag @backend-dev with fixes. When approved, tag @qa-tester."}
 ```
 
 4. **Frontend Pair**:
@@ -112,7 +112,7 @@ swarm{action: "add", name: "frontend-dev", workspace: "share",
   brief: "Your visual identity is 🎨 [Frontend Dev]. Prefix your board posts with '🎨 [Frontend]:'. Load skills: 'frontend-developer', 'ui-ux-designer', 'tailwind-design-system', 'frontend-ui-engineering'. Wait for @arch-critic approval. Build responsive (360px+), accessible (WCAG AA), and interactive UI components connected to backend contracts in your share workspace. When complete, tag @frontend-critic."}
 
 swarm{action: "add", name: "frontend-critic", workspace: "inherit",
-  brief: "Your visual identity is 👁️ [Frontend Critic]. Prefix your board posts with '👁️ [Frontend-Critic]:'. Load skills: 'adversarial-critic', 'ui-visual-validator', 'wcag-audit-patterns', 'frontend-security-coder'. Wait for @frontend-dev. Inspect UI for layout breaking at 360px, color contrast, keyboard navigation, and XSS risks. If flawed, tag @frontend-dev. When approved, tag @qa-tester."}
+  brief: "Your visual identity is 👁️ [Frontend Critic]. Prefix your board posts with '👁️ [Frontend-Critic]:'. Load skills: 'adversarial-critic', 'better-interface', 'ui-visual-validator', 'wcag-audit-patterns', 'frontend-security-coder'. Wait for @frontend-dev. Inspect UI for layout breaking at 360px, holistic interface quality (typography, colors, UI polish), color contrast, keyboard navigation, and XSS risks. If flawed, tag @frontend-dev. When approved, tag @qa-tester."}
 ```
 
 5. **Quality & Release Pair**:

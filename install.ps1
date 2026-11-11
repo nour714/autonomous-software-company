@@ -8,10 +8,11 @@ if (-not (Test-Path $targetSkills)) {
     New-Item -ItemType Directory -Force -Path $targetSkills | Out-Null
 }
 
+$installedCount = (Get-ChildItem -Path $sourceSkills -Directory).Count
 Get-ChildItem -Path $sourceSkills -Directory | ForEach-Object {
     $dest = Join-Path $targetSkills $_.Name
     Copy-Item -Path $_.FullName -Destination $dest -Recurse -Force
     Write-Host "Installed: $($_.Name)"
 }
 
-Write-Host "Installation completed successfully. 40 skills installed to $targetSkills."
+Write-Host "Installation completed successfully. $installedCount skills installed to $targetSkills."

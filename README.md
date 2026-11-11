@@ -12,9 +12,9 @@ An enterprise-grade autonomous software development system designed for AI codin
 | **Architecture** | 🏛️ | `architect` | Lead Architect | System design, data models, contract specifications |
 | | 🧐 | `arch-critic` | Architecture Critic | Structural review, scalability analysis, anti-pattern detection |
 | **Backend** | ⚙️ | `backend-dev` | Backend Engineer | APIs, database migrations, security rules, server logic |
-| | 🛡️ | `backend-critic` | Backend Critic | OWASP vulnerability checks, query optimization, input validation |
+| | 🛡️ | `backend-critic` | Backend Critic | Security audit, OWASP vulnerability checks, query optimization, input validation |
 | **Frontend** | 🎨 | `frontend-dev` | Frontend Engineer | Responsive interfaces (360px+), accessible components, styling |
-| | 👁️ | `frontend-critic` | Frontend Critic | Visual verification, mobile auditing, WCAG 2.1 AA validation |
+| | 👁️ | `frontend-critic` | Frontend Critic | Interface auditing (`better-interface`), visual verification, mobile auditing, WCAG 2.1 AA |
 | **Quality & Release** | 🧪 | `qa-tester` | QA Automation | End-to-end testing, integration suites, test-driven validation |
 | | 🚀 | `release-gatekeeper` | Release Gatekeeper | Build integrity, empirical test verification, release sign-off |
 | **Safety Net** | 📡 | `monitor` | Stall Monitor | Deadlock prevention and activity monitoring |

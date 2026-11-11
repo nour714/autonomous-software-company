@@ -5,8 +5,8 @@ The autonomous engineering team operates as 4 specialized Builder-Critic tracks 
 
 1. 🎯 `dispatcher`: Requirement deconstruction and task allocation.
 2. 🏛️ `architect` & 🧐 `arch-critic`: System design, interface definitions, and architectural review.
-3. ⚙️ `backend-dev` & 🛡️ `backend-critic`: Server endpoints, data validation, database schemas, and security review.
-4. 🎨 `frontend-dev` & 👁️ `frontend-critic`: Responsive user interfaces (360px+), accessibility (WCAG 2.1 AA), and design auditing.
+3. ⚙️ `backend-dev` & 🛡️ `backend-critic`: Server endpoints, data validation, database schemas, and security audits (`security-audit`).
+4. 🎨 `frontend-dev` & 👁️ `frontend-critic`: Responsive user interfaces (360px+), accessibility (WCAG 2.1 AA), and comprehensive interface auditing (`better-interface`).
 5. 🧪 `qa-tester` & 🚀 `release-gatekeeper`: Automated test suites, integration validation, and release gatekeeping.
 6. 📡 `monitor`: Swarm stall detection.
 
