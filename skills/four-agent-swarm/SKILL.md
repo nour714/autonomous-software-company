@@ -16,18 +16,18 @@ This skill coordinates a production-grade software development company composed 
 
 ## 1. Visual Identity & Agent Roster
 
-| المسار التخصصي | الأيقونة | اسم الإيجنت | الدور الفني | المهارات الأساسية | الأدوات والإضافات | نمط مساحة العمل |
-|---|---|---|---|---|---|---|
-| **إدارة وتوزيع المهام** | 🎯 | `dispatcher` | مدير المهام وتوزيع سباقات العمل والاعتماديات | `workflow-orchestration-patterns`<br>`agent-orchestration-multi-agent-optimize`<br>`karpathy-guidelines`<br>`task-dispatching` | System tools | `inherit` |
-| **المعمارية (Author)** | 🏛️ | `architect` | مهندس المعمارية، تصميم النظم، وعقود الـ APIs | `backend-architect`<br>`c4-architecture-c4-architecture`<br>`architecture-patterns`<br>`api-design-principles` | `google-developer-knowledge`<br>`mobbin` | `inherit` |
-| **المعمارية (Critic)** | 🧐 | `arch-critic` | ناقد المعمارية، فحص الاختناقات والتعقيد الزائد | `adversarial-critic`<br>`architect-review`<br>`karpathy-guidelines`<br>`multi-cloud-architecture` | `google-developer-knowledge` | `inherit` |
-| **الباك إند (Author)** | ⚙️ | `backend-dev` | برمجة السيرفر، قواعد البيانات، وعمليات الترحيل | `backend-architect`<br>`backend-development-feature-development`<br>`database-migrations-sql-migrations`<br>`sql-optimization-patterns` | `supabase`<br>`firebase`<br>Database MCPs | `share` |
-| **الباك إند (Critic)** | 🛡️ | `backend-critic` | ناقد الأمان، فحص ثغرات OWASP والتدقيق الأمني واستعلامات SQL | `adversarial-critic`<br>`security-audit`<br>`backend-security-coder`<br>`simon-willison-patterns`<br>`database-optimizer` | `supabase`<br>`firebase` | `inherit` |
-| **الفرونت إند (Author)** | 🎨 | `frontend-dev` | بناء واجهات المستخدم المتجاوبة، التصميم، والحركات | `frontend-developer`<br>`ui-ux-designer`<br>`tailwind-design-system`<br>`frontend-ui-engineering` | `chrome-devtools-plugin`<br>`vercel-plugin` | `share` |
-| **الفرونت إند (Critic)** | 👁️ | `frontend-critic` | فحص وتدقيق الواجهات، شاشات الموبايل 360px+، التباين، والوصولية | `adversarial-critic`<br>`better-interface`<br>`ui-visual-validator`<br>`wcag-audit-patterns`<br>`frontend-security-coder` | `chrome-devtools-plugin` | `inherit` |
-| **الاختبارات (Author)** | 🧪 | `qa-tester` | أتمتة الاختبارات الشاملة E2E ودورة TDD | `test-automator`<br>`e2e-testing-patterns`<br>`tdd-orchestrator`<br>`hashimoto-harness-loop` | `chrome-devtools-plugin`<br>`testsprite` | `inherit` |
-| **الاعتماد (Critic)** | 🚀 | `release-gatekeeper`| حارس بوابة النشر النهائي وفحص سلامة البناء | `adversarial-critic`<br>`verification-before-completion`<br>`deployment-engineer`<br>`cicd-automation-workflow-automate`<br>`observability-engineer` | `chrome-devtools-plugin` | `inherit` |
-| **مراقبة الخمول** | 📡 | `monitor` | مراقب خمول السرب وتنبيه الإيجنت المتوقفة | `swarm_monitor` | System Watcher | `inherit` |
+| المسار التخصصي | الأيقونة | اسم الإيجنت | الدور الفني | الموديل الأساسي | الموديل الاحتياطي (Fallback) | المهارات الأساسية | الأدوات والإضافات | نمط مساحة العمل |
+|---|---|---|---|:---:|:---:|---|---|---|
+| **إدارة وتوزيع المهام** | 🎯 | `dispatcher` | مدير المهام وتوزيع سباقات العمل والاعتماديات | `gemini-3.8-flash-high` | - | `workflow-orchestration-patterns`<br>`agent-orchestration-multi-agent-optimize`<br>`karpathy-guidelines`<br>`task-dispatching` | System tools | `inherit` |
+| **المعمارية (Author)** | 🏛️ | `architect` | مهندس المعمارية، تصميم النظم، وعقود الـ APIs | `gemini-3.8-flash-high` | - | `backend-architect`<br>`c4-architecture-c4-architecture`<br>`architecture-patterns`<br>`api-design-principles` | `google-developer-knowledge`<br>`mobbin` | `inherit` |
+| **المعمارية (Critic)** | 🧐 | `arch-critic` | ناقد المعمارية، فحص الاختناقات والتعقيد الزائد | `claude-sonnet-4-6` (Thinking) | `gemini-3.8-flash-high` | `adversarial-critic`<br>`architect-review`<br>`karpathy-guidelines`<br>`multi-cloud-architecture` | `google-developer-knowledge` | `inherit` |
+| **الباك إند (Author)** | ⚙️ | `backend-dev` | برمجة السيرفر، قواعد البيانات، وعمليات الترحيل | `gemini-3.8-flash-high` | - | `backend-architect`<br>`backend-development-feature-development`<br>`database-migrations-sql-migrations`<br>`sql-optimization-patterns` | `supabase`<br>`firebase`<br>Database MCPs | `share` |
+| **الباك إند (Critic)** | 🛡️ | `backend-critic` | ناقد الأمان، فحص ثغرات OWASP والتدقيق الأمني واستعلامات SQL | `claude-opus-4-6-thinking` | `gemini-3.8-flash-high` | `adversarial-critic`<br>`security-audit`<br>`backend-security-coder`<br>`simon-willison-patterns`<br>`database-optimizer` | `supabase`<br>`firebase` | `inherit` |
+| **الفرونت إند (Author)** | 🎨 | `frontend-dev` | بناء واجهات المستخدم المتجاوبة، التصميم، والحركات | `gemini-3.8-flash-medium` | - | `frontend-developer`<br>`ui-ux-designer`<br>`tailwind-design-system`<br>`frontend-ui-engineering` | `chrome-devtools-plugin`<br>`vercel-plugin` | `share` |
+| **الفرونت إند (Critic)** | 👁️ | `frontend-critic` | فحص وتدقيق الواجهات، شاشات الموبايل 360px+، التباين، والوصولية | `gemini-3.8-flash-high` | - | `adversarial-critic`<br>`better-interface`<br>`ui-visual-validator`<br>`wcag-audit-patterns`<br>`frontend-security-coder` | `chrome-devtools-plugin` | `inherit` |
+| **الاختبارات (Author)** | 🧪 | `qa-tester` | أتمتة الاختبارات الشاملة E2E ودورة TDD | `gemini-3.8-flash-medium` | - | `test-automator`<br>`e2e-testing-patterns`<br>`tdd-orchestrator`<br>`hashimoto-harness-loop` | `chrome-devtools-plugin`<br>`testsprite` | `inherit` |
+| **الاعتماد (Critic)** | 🚀 | `release-gatekeeper`| حارس بوابة النشر النهائي وفحص سلامة البناء | `gemini-3.8-flash-medium` | - | `adversarial-critic`<br>`verification-before-completion`<br>`deployment-engineer`<br>`cicd-automation-workflow-automate`<br>`observability-engineer` | `chrome-devtools-plugin` | `inherit` |
+| **مراقبة الخمول** | 📡 | `monitor` | مراقب خمول السرب وتنبيه الإيجنت المتوقفة | `gemini-3.8-flash-low` | - | `swarm_monitor` | System Watcher | `inherit` |
 
 ---
 
@@ -112,7 +112,7 @@ swarm{action: "add", name: "dispatcher", model: "gemini-3.8-flash-high", workspa
 swarm{action: "add", name: "architect", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 🏛️ [Architect]. Prefix your board posts with '🏛️ [Architect]:'. Load skills: 'backend-architect', 'c4-architecture-c4-architecture', 'architecture-patterns', 'api-design-principles'. Wait for @dispatcher. Draft the system architecture, DB schema, and API contracts. Post the contract summary with concrete JSON payload shapes for frontend mocks to the board and tag @arch-critic for review."}
 
-swarm{action: "add", name: "arch-critic", model: "gemini-3.8-flash-high", workspace: "inherit",
+swarm{action: "add", name: "arch-critic", model: "claude-sonnet-4-6", workspace: "inherit",
   brief: "Your visual identity is 🧐 [Architecture Critic]. Prefix your board posts with '🧐 [Arch-Critic]:'. Load skills: 'adversarial-critic', 'architect-review', 'karpathy-guidelines', 'multi-cloud-architecture'. Wait for @architect. Review the architecture for bottlenecks, security risks, and contract clarity. Enforce Karpathy's simplicity principle (reject speculative abstractions). When fully satisfied, post explicit approval and tag @dispatcher, @backend-dev, @frontend-dev, and @qa-tester so implementation and test drafting start in parallel."}
 ```
 
@@ -121,7 +121,7 @@ swarm{action: "add", name: "arch-critic", model: "gemini-3.8-flash-high", worksp
 swarm{action: "add", name: "backend-dev", model: "gemini-3.8-flash-high", workspace: "share",
   brief: "Your visual identity is ⚙️ [Backend Dev]. Prefix your board posts with '⚙️ [Backend]:'. Load skills: 'backend-architect', 'backend-development-feature-development', 'database-migrations-sql-migrations', 'sql-optimization-patterns'. Use 'supabase' or 'firebase' plugins if applicable. Wait for @arch-critic approval. Implement server logic, database models, and API endpoints in your share workspace. When complete, tag @backend-critic with diff details using a concise handoff card."}
 
-swarm{action: "add", name: "backend-critic", model: "gemini-3.8-flash-high", workspace: "inherit",
+swarm{action: "add", name: "backend-critic", model: "claude-opus-4-6-thinking", workspace: "inherit",
   brief: "Your visual identity is 🛡️ [Backend Critic]. Prefix your board posts with '🛡️ [Backend-Critic]:'. Load skills: 'adversarial-critic', 'security-audit', 'backend-security-coder', 'simon-willison-patterns', 'database-optimizer'. Wait for @backend-dev. Audit changed code (diff-scoped) for OWASP vulnerabilities, security architecture risks, SQL injection, unindexed queries, and prompt injection defense using concise verdict cards. If flawed, tag @backend-dev with fixes. When approved, tag @qa-tester."}
 ```
 
@@ -151,18 +151,25 @@ swarm{action: "add", name: "monitor", model: "gemini-3.8-flash-low", workspace: 
 
 ---
 
-## 4. Multi-Model Routing & Quota Defense Protocol
+## 4. Multi-Model Hybrid Routing & Claude Quota Fallback Protocol
 
-### مبادئ توجيه النماذج والأمان التشغيلي:
-1. **حظر الاعتماد على GPT-OSS:** تم استبعاد `gpt-oss-120b-medium` بالكامل من السرب لضمان دقة التنفيذ وتفادي أي أخطاء في الالتزام بالمعايير.
-2. **التوزيع الأساسي الافتراضي:**
-   - **`gemini-3.8-flash-high`:** للإيجنت أصحاب المهام المعقدة والتفكير العالي (`dispatcher`, `architect`, `arch-critic`, `backend-dev`, `backend-critic`, `frontend-critic`).
-   - **`gemini-3.8-flash-medium`:** لتوليد الكود السريع والواجهات والاختبارات (`frontend-dev`, `qa-tester`, `release-gatekeeper`).
-   - **`gemini-3.8-flash-low`:** للمراقبة الفورية وخفض زمن الاستجابة (`monitor`).
-3. **خطة الطوارئ عند نفاد الكوتا (High-Tier Fallback):**
-   - **إذا نفدت كوتا Gemini:** يتم فوراً تحويل الإيجنت الحساسين إلى النماذج الأعلى تفكيراً:
-     `claude-sonnet-4-6` (Thinking) أو `claude-opus-4-6-thinking`.
-   - **إذا انخفضت كوتا Claude:** يبقى الاعتماد كاملاً ومحمياً على عائلة `gemini-3.8-flash-*` ذات الكوتا المرتفعة (94%+).
+### مبادئ توجيه النماذج والهندسة الهجينة (Hybrid Cross-Model Architecture):
+1. **استبعاد GPT-OSS بالكامل:** تم حظر `gpt-oss-120b-medium` تماماً وعدم الاعتماد عليه في أي مسار لضمان الموثوقية والجودة.
+2. **التوزيع الأساسي (The Hybrid Elite Squad):**
+   - **النقاد الكبار (Cross-Model Verification):**
+     - **🧐 `arch-critic`:** يعمل على **`claude-sonnet-4-6`** (Thinking) لمراجعة المعمارية ونفي التحيز.
+     - **🛡️ `backend-critic`:** يعمل على **`claude-opus-4-6-thinking`** للتدقيق الأمني الصارم (`security-audit`).
+   - **فريق البناء والتخطيط (Gemini High-Speed Engine):**
+     - **🎯 `dispatcher`** و **🏛️ `architect`** و **⚙️ `backend-dev`** و **👁️ `frontend-critic`:** يعملون على **`gemini-3.8-flash-high`**.
+     - **🎨 `frontend-dev`** و **🧪 `qa-tester`** و **🚀 `release-gatekeeper`:** يعملون على **`gemini-3.8-flash-medium`**.
+     - **📡 `monitor`:** يعمل على **`gemini-3.8-flash-low`**.
+3. **خطة الطوارئ والاحتياطي لكوتا Claude (Claude -> Gemini Fallback):**
+   - بما أن كوتا Claude حساسة ومحدودة (حالياً 6%)، إذا نفدت كوتا Claude أو ظهر خطأ أثناء التشغيل، يتم فوراً تحويل `arch-critic` و `backend-critic` إلى الموديل الأقوى من Gemini: **`gemini-3.8-flash-high`**.
+   - يتم التبديل الساخن دون توقف السرب أو فقدان الذاكرة:
+     ```json
+     swarm{action: "model", name: "arch-critic", model: "gemini-3.8-flash-high"}
+     swarm{action: "model", name: "backend-critic", model: "gemini-3.8-flash-high"}
+     ```
 4. **أمر التبديل الساخن اللحظي (Hot-Swapping Without State Loss):**
    عند نفاد الكوتا لأي إيجنت أثناء العمل، لا يتم قتله، بل يُبدل نموذجه لحظياً مع الحفاظ على كامل ذاكرته وسياقه:
    ```json

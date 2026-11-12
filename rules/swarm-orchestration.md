@@ -21,7 +21,8 @@ The autonomous engineering team operates as 4 specialized Builder-Critic tracks 
 - **Diff-Scoped Audits:** `backend-critic` and `frontend-critic` focus review attention surgically on changed files (`git diff`) rather than rescanning untouched areas.
 - **Zero-Banter Communication:** All status updates, handoffs, and critic verdicts use structured, concise cards to preserve context window hygiene and maximize execution speed.
 
-## 4. Multi-Model Routing & Zero-Downtime Quota Defense
-- **Zero GPT-OSS Dependency:** `gpt-oss-120b-medium` is strictly excluded from development and review tracks to guarantee precision.
-- **Default Tiered Models:** High-reasoning roles (`dispatcher`, `architect`, `critics`, `backend-dev`) operate on `gemini-3.8-flash-high`; fast implementation (`frontend-dev`, `qa-tester`, `gatekeeper`) on `gemini-3.8-flash-medium`; stall monitoring on `gemini-3.8-flash-low`.
-- **High-Tier Fallback Protocol:** If Gemini quota is exhausted, hot-swap critical agents to `claude-sonnet-4-6` (Thinking) or `claude-opus-4-6-thinking` via `swarm model` without terminating workers or losing context.
+## 4. Multi-Model Hybrid Routing & Claude Quota Defense
+- **Zero GPT-OSS Dependency:** `gpt-oss-120b-medium` is strictly excluded from all tracks.
+- **Hybrid Elite Critic Pairing:** `arch-critic` runs on `claude-sonnet-4-6` (Thinking) and `backend-critic` runs on `claude-opus-4-6-thinking` for cross-vendor adversarial verification.
+- **Gemini Core Engine:** `dispatcher`, `architect`, `backend-dev`, and `frontend-critic` run on `gemini-3.8-flash-high`; `frontend-dev`, `qa-tester`, and `release-gatekeeper` on `gemini-3.8-flash-medium`; `monitor` on `gemini-3.8-flash-low`.
+- **Claude -> Gemini Fallback Protocol:** If Claude quota (currently 6%) runs out or triggers a limit, immediately hot-swap `arch-critic` and `backend-critic` to `gemini-3.8-flash-high` via `swarm model` with zero downtime or context loss.

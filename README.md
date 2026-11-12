@@ -50,7 +50,7 @@ graph TD
 
 The squad operates under established software engineering methodologies:
 - **Shift-Left TDD & Pipelining:** `qa-tester` drafts test harnesses in parallel with development; `frontend-dev` builds immediately using contract mocks; critics audit targeted diffs.
-- **Multi-Model Tiering & Quota Defense:** Smart routing across Gemini Flash tiers (High/Medium/Low) with Claude Thinking as zero-downtime high-tier fallback (zero dependency on GPT-OSS).
+- **Hybrid Cross-Model Verification:** `arch-critic` (Claude Sonnet 4.6 Thinking) and `backend-critic` (Claude Opus 4.6 Thinking) paired with Gemini 3.8 Flash High/Medium engine, with automatic fallback to Gemini 3.8 Flash High (Zero GPT-OSS).
 - **Karpathy Simplicity Principles:** Surface assumptions early, write minimum necessary code, make surgical changes without collateral refactoring.
 - **Hashimoto Harness Pattern:** Automated test harnesses serve as the deterministic source of truth; git-backed rollback loops maintain repository hygiene.
 - **Willison Defensive Security:** Strict boundary separation for untrusted input, parameterization for database queries, and defense against injection attacks.
