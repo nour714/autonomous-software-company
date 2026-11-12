@@ -30,24 +30,26 @@ graph TD
     
     Disp --> Arch["🏛️ architect"]
     Arch --> ArchCrit["🧐 arch-critic"]
-    ArchCrit -->|Approved| Back["⚙️ backend-dev"]
-    ArchCrit -->|Approved| Front["🎨 frontend-dev"]
+    ArchCrit -->|Approved Specs| Back["⚙️ backend-dev (Server & DB)"]
+    ArchCrit -->|Approved Specs| Front["🎨 frontend-dev (Mock-driven UI)"]
+    ArchCrit -->|Approved Specs| QA["🧪 qa-tester (Drafts TDD Harness)"]
     
-    Back --> BackCrit["🛡️ backend-critic"]
-    Front --> FrontCrit["👁️ frontend-critic"]
+    Back --> BackCrit["🛡️ backend-critic (Diff Audit)"]
+    Front --> FrontCrit["👁️ frontend-critic (UI Review)"]
     
-    BackCrit -->|Signed Off| QA["🧪 qa-tester"]
+    BackCrit -->|Signed Off| QA
     FrontCrit -->|Signed Off| QA
     
-    QA --> RelGate["🚀 release-gatekeeper"]
+    QA -->|Executes Full Suite| RelGate["🚀 release-gatekeeper"]
     RelGate -->|Empirical Proof| Coord
 ```
 
 ---
 
-## 3. Engineering Foundations
+## 3. Engineering Foundations & Speed Optimization
 
 The squad operates under established software engineering methodologies:
+- **Shift-Left TDD & Pipelining:** `qa-tester` drafts test harnesses in parallel with development; `frontend-dev` builds immediately using contract mocks; critics audit targeted diffs.
 - **Karpathy Simplicity Principles:** Surface assumptions early, write minimum necessary code, make surgical changes without collateral refactoring.
 - **Hashimoto Harness Pattern:** Automated test harnesses serve as the deterministic source of truth; git-backed rollback loops maintain repository hygiene.
 - **Willison Defensive Security:** Strict boundary separation for untrusted input, parameterization for database queries, and defense against injection attacks.

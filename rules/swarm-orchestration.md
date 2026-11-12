@@ -14,3 +14,9 @@ The autonomous engineering team operates as 4 specialized Builder-Critic tracks 
 - Workspaces for authors (`backend-dev`, `frontend-dev`) use shared copies (`workspace: "share"`) to eliminate file collisions.
 - Peer-to-peer handoffs occur on the message board using `@mentions`.
 - No feature is declared complete without automated verification evidence.
+
+## 3. High-Speed & High-Precision Execution Standards
+- **Shift-Left TDD:** `qa-tester` begins drafting deterministic test harnesses as soon as API contracts are approved by `arch-critic`, eliminating downstream waiting time.
+- **Mock-Driven Parallelism:** `frontend-dev` builds UI against approved contract shapes immediately without blocking on backend database provisioning.
+- **Diff-Scoped Audits:** `backend-critic` and `frontend-critic` focus review attention surgically on changed files (`git diff`) rather than rescanning untouched areas.
+- **Zero-Banter Communication:** All status updates, handoffs, and critic verdicts use structured, concise cards to preserve context window hygiene and maximize execution speed.
