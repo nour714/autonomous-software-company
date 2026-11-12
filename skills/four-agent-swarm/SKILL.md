@@ -103,48 +103,68 @@ swarm{action: "title", title: "<project-name> Enterprise Squad"}
 
 1. **Dispatcher**:
 ```json
-swarm{action: "add", name: "dispatcher", workspace: "inherit",
+swarm{action: "add", name: "dispatcher", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 🎯 [Dispatcher]. Prefix your board posts with '🎯 [Dispatcher]:'. Load skills: 'workflow-orchestration-patterns', 'agent-orchestration-multi-agent-optimize', 'karpathy-guidelines', 'task-dispatching'. Deconstruct the user goal into actionable user stories, quality criteria, and directory boundaries. Tag @architect to design the architecture and API contracts. Enforce zero-banter status cards and monitor approvals from critics before advancing downstream stages."}
 ```
 
 2. **Architecture Pair**:
 ```json
-swarm{action: "add", name: "architect", workspace: "inherit",
+swarm{action: "add", name: "architect", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 🏛️ [Architect]. Prefix your board posts with '🏛️ [Architect]:'. Load skills: 'backend-architect', 'c4-architecture-c4-architecture', 'architecture-patterns', 'api-design-principles'. Wait for @dispatcher. Draft the system architecture, DB schema, and API contracts. Post the contract summary with concrete JSON payload shapes for frontend mocks to the board and tag @arch-critic for review."}
 
-swarm{action: "add", name: "arch-critic", workspace: "inherit",
+swarm{action: "add", name: "arch-critic", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 🧐 [Architecture Critic]. Prefix your board posts with '🧐 [Arch-Critic]:'. Load skills: 'adversarial-critic', 'architect-review', 'karpathy-guidelines', 'multi-cloud-architecture'. Wait for @architect. Review the architecture for bottlenecks, security risks, and contract clarity. Enforce Karpathy's simplicity principle (reject speculative abstractions). When fully satisfied, post explicit approval and tag @dispatcher, @backend-dev, @frontend-dev, and @qa-tester so implementation and test drafting start in parallel."}
 ```
 
 3. **Backend Pair**:
 ```json
-swarm{action: "add", name: "backend-dev", workspace: "share",
+swarm{action: "add", name: "backend-dev", model: "gemini-3.8-flash-high", workspace: "share",
   brief: "Your visual identity is ⚙️ [Backend Dev]. Prefix your board posts with '⚙️ [Backend]:'. Load skills: 'backend-architect', 'backend-development-feature-development', 'database-migrations-sql-migrations', 'sql-optimization-patterns'. Use 'supabase' or 'firebase' plugins if applicable. Wait for @arch-critic approval. Implement server logic, database models, and API endpoints in your share workspace. When complete, tag @backend-critic with diff details using a concise handoff card."}
 
-swarm{action: "add", name: "backend-critic", workspace: "inherit",
+swarm{action: "add", name: "backend-critic", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 🛡️ [Backend Critic]. Prefix your board posts with '🛡️ [Backend-Critic]:'. Load skills: 'adversarial-critic', 'security-audit', 'backend-security-coder', 'simon-willison-patterns', 'database-optimizer'. Wait for @backend-dev. Audit changed code (diff-scoped) for OWASP vulnerabilities, security architecture risks, SQL injection, unindexed queries, and prompt injection defense using concise verdict cards. If flawed, tag @backend-dev with fixes. When approved, tag @qa-tester."}
 ```
 
 4. **Frontend Pair**:
 ```json
-swarm{action: "add", name: "frontend-dev", workspace: "share",
+swarm{action: "add", name: "frontend-dev", model: "gemini-3.8-flash-medium", workspace: "share",
   brief: "Your visual identity is 🎨 [Frontend Dev]. Prefix your board posts with '🎨 [Frontend]:'. Load skills: 'frontend-developer', 'ui-ux-designer', 'tailwind-design-system', 'frontend-ui-engineering'. Wait for @arch-critic approval. Build responsive (360px+), accessible (WCAG AA), and interactive UI components using contract mock data immediately in your share workspace without blocking on backend DB. When complete, tag @frontend-critic with diff details using a concise handoff card."}
 
-swarm{action: "add", name: "frontend-critic", workspace: "inherit",
+swarm{action: "add", name: "frontend-critic", model: "gemini-3.8-flash-high", workspace: "inherit",
   brief: "Your visual identity is 👁️ [Frontend Critic]. Prefix your board posts with '👁️ [Frontend-Critic]:'. Load skills: 'adversarial-critic', 'better-interface', 'ui-visual-validator', 'wcag-audit-patterns', 'frontend-security-coder'. Wait for @frontend-dev. Inspect UI diffs for layout breaking at 360px, holistic interface quality (typography, colors, UI polish), color contrast, keyboard navigation, and XSS risks using concise verdict cards. If flawed, tag @frontend-dev. When approved, tag @qa-tester."}
 ```
 
 5. **Quality & Release Pair**:
 ```json
-swarm{action: "add", name: "qa-tester", workspace: "inherit",
+swarm{action: "add", name: "qa-tester", model: "gemini-3.8-flash-medium", workspace: "inherit",
   brief: "Your visual identity is 🧪 [QA Tester]. Prefix your board posts with '🧪 [QA-Tester]:'. Load skills: 'test-automator', 'e2e-testing-patterns', 'tdd-orchestrator', 'hashimoto-harness-loop'. SHIFT-LEFT TDD: As soon as @arch-critic approves API contracts, start drafting deterministic test harnesses and mock suites immediately. Once BOTH @backend-critic and @frontend-critic approve their tracks, execute the comprehensive unit, integration, and E2E test suites with zero delay. Tag @release-gatekeeper with test output logs."}
 
-swarm{action: "add", name: "release-gatekeeper", workspace: "inherit",
+swarm{action: "add", name: "release-gatekeeper", model: "gemini-3.8-flash-medium", workspace: "inherit",
   brief: "Your visual identity is 🚀 [Release Gatekeeper]. Prefix your board posts with '🚀 [Gatekeeper]:'. Load skills: 'adversarial-critic', 'verification-before-completion', 'deployment-engineer', 'cicd-automation-workflow-automate', 'observability-engineer'. Wait for @qa-tester. Verify test output, inspect build integrity, and confirm zero console/build errors. If issues exist, tag the responsible author. When 100% verified with empirical proof, tag @dispatcher and @coordinator for final delivery."}
 ```
 
 6. **Safety Monitor**:
 ```json
-swarm{action: "add", name: "monitor", workspace: "inherit",
+swarm{action: "add", name: "monitor", model: "gemini-3.8-flash-low", workspace: "inherit",
   brief: "Your visual identity is 📡 [Stall Monitor]. You are this swarm's stall monitor. Load the swarm_monitor skill and follow it. Post only to break a stall."}
 ```
+
+---
+
+## 4. Multi-Model Routing & Quota Defense Protocol
+
+### مبادئ توجيه النماذج والأمان التشغيلي:
+1. **حظر الاعتماد على GPT-OSS:** تم استبعاد `gpt-oss-120b-medium` بالكامل من السرب لضمان دقة التنفيذ وتفادي أي أخطاء في الالتزام بالمعايير.
+2. **التوزيع الأساسي الافتراضي:**
+   - **`gemini-3.8-flash-high`:** للإيجنت أصحاب المهام المعقدة والتفكير العالي (`dispatcher`, `architect`, `arch-critic`, `backend-dev`, `backend-critic`, `frontend-critic`).
+   - **`gemini-3.8-flash-medium`:** لتوليد الكود السريع والواجهات والاختبارات (`frontend-dev`, `qa-tester`, `release-gatekeeper`).
+   - **`gemini-3.8-flash-low`:** للمراقبة الفورية وخفض زمن الاستجابة (`monitor`).
+3. **خطة الطوارئ عند نفاد الكوتا (High-Tier Fallback):**
+   - **إذا نفدت كوتا Gemini:** يتم فوراً تحويل الإيجنت الحساسين إلى النماذج الأعلى تفكيراً:
+     `claude-sonnet-4-6` (Thinking) أو `claude-opus-4-6-thinking`.
+   - **إذا انخفضت كوتا Claude:** يبقى الاعتماد كاملاً ومحمياً على عائلة `gemini-3.8-flash-*` ذات الكوتا المرتفعة (94%+).
+4. **أمر التبديل الساخن اللحظي (Hot-Swapping Without State Loss):**
+   عند نفاد الكوتا لأي إيجنت أثناء العمل، لا يتم قتله، بل يُبدل نموذجه لحظياً مع الحفاظ على كامل ذاكرته وسياقه:
+   ```json
+   swarm{action: "model", name: "<agent-name>", model: "<fallback-model>"}
+   ```

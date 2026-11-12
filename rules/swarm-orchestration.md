@@ -20,3 +20,8 @@ The autonomous engineering team operates as 4 specialized Builder-Critic tracks 
 - **Mock-Driven Parallelism:** `frontend-dev` builds UI against approved contract shapes immediately without blocking on backend database provisioning.
 - **Diff-Scoped Audits:** `backend-critic` and `frontend-critic` focus review attention surgically on changed files (`git diff`) rather than rescanning untouched areas.
 - **Zero-Banter Communication:** All status updates, handoffs, and critic verdicts use structured, concise cards to preserve context window hygiene and maximize execution speed.
+
+## 4. Multi-Model Routing & Zero-Downtime Quota Defense
+- **Zero GPT-OSS Dependency:** `gpt-oss-120b-medium` is strictly excluded from development and review tracks to guarantee precision.
+- **Default Tiered Models:** High-reasoning roles (`dispatcher`, `architect`, `critics`, `backend-dev`) operate on `gemini-3.8-flash-high`; fast implementation (`frontend-dev`, `qa-tester`, `gatekeeper`) on `gemini-3.8-flash-medium`; stall monitoring on `gemini-3.8-flash-low`.
+- **High-Tier Fallback Protocol:** If Gemini quota is exhausted, hot-swap critical agents to `claude-sonnet-4-6` (Thinking) or `claude-opus-4-6-thinking` via `swarm model` without terminating workers or losing context.
