@@ -1,0 +1,264 @@
+version: 1
+
+execution:
+  default_mode: standard
+  max_review_rounds: 2
+  max_files_per_task: 5
+  target_task_unit_minutes: 15
+  parallel_execution_tracks:  # TODO(verify) runtime parallel track support
+    - backend-dev
+    - frontend-dev
+    - qa-tester
+  stall:
+    initial_detection_minutes: 3
+    second_detection_minutes: 2
+    ping_limit: 1
+
+execution_modes:
+  quick:
+    description: "Fast-track execution for localized changes (<= 2 files) bypassing full architecture cycles."
+    typical_active_agents:
+      - dispatcher
+      - backend-dev
+      - frontend-dev
+      - qa-tester
+      - release-gatekeeper
+      - monitor
+    routing_rules: "Skip architect and arch-critic when contract specifications are established; single critic review pass."
+  standard:
+    description: "Default full-pipeline engineering workflow with shift-left TDD and parallel development."
+    typical_active_agents:
+      - dispatcher
+      - architect
+      - arch-critic
+      - backend-dev
+      - backend-critic
+      - frontend-dev
+      - frontend-critic
+      - qa-tester
+      - release-gatekeeper
+      - monitor
+    routing_rules: "Full architecture sign-off preceding parallel backend/frontend tracks; max 2 review rounds before gatekeeper."
+  enterprise:
+    description: "High-assurance audit workflow with deep security scanning, accessibility verification, and ADR generation."
+    typical_active_agents:
+      - dispatcher
+      - architect
+      - arch-critic
+      - backend-dev
+      - backend-critic
+      - frontend-dev
+      - frontend-critic
+      - qa-tester
+      - release-gatekeeper
+      - monitor
+    routing_rules: "Mandatory tier_2 risk controls, full OWASP top 10 and WCAG AA audits, complete coverage ledger validation."
+
+risk_tiers:
+  tier_0:
+    time_budget_minutes: 5
+    critic_required: false
+  tier_1:
+    time_budget_minutes: 15
+    critic_required: true
+  tier_2:
+    time_budget_minutes: 25
+    critic_required: true
+
+thinking_budgets:  # TODO(verify) runtime CLI/API integration
+  default: low
+  architecture_design: medium
+  tier_2_critics: high
+
+models:
+  policy: "On the first verified quota, rate-limit, or model execution error, switch directly to model_fallback without an endless retry loop; if null or unavailable, report task as BLOCKED."
+  agents:
+    dispatcher: "gemini-3.8-flash-high"
+    architect: "gemini-3.8-flash-high"
+    arch-critic: "claude-sonnet-4-6"  # TODO(verify) provider model ID format
+    backend-dev: "gemini-3.8-flash-high"
+    backend-critic: "claude-opus-4-6-thinking"  # TODO(verify) provider model ID format
+    frontend-dev: "gemini-3.8-flash-medium"
+    frontend-critic: "gemini-3.8-flash-high"
+    qa-tester: "gemini-3.8-flash-medium"
+    release-gatekeeper: "gemini-3.8-flash-medium"
+    monitor: "gemini-3.8-flash-low"
+  fallback_map:
+    claude-sonnet-4-6: "gemini-3.8-flash-high"  # TODO(verify)
+    claude-opus-4-6-thinking: "gemini-3.8-flash-high"  # TODO(verify)
+    gemini-3.8-flash-high: null
+    gemini-3.8-flash-medium: null
+    gemini-3.8-flash-low: null
+  excluded_models:
+    - "gpt-oss-120b-medium"
+
+agent_profiles:
+  dispatcher:
+    role: "Task Dispatcher"
+    workspace: "inherit"
+    timeout_minutes: 15
+    max_review_rounds: 2
+    skills_preloaded:
+      - task-dispatching
+      - workflow-orchestration-patterns
+      - karpathy-guidelines
+    skills_on_demand:
+      - agent-orchestration-multi-agent-optimize
+    tools:
+      - run_command
+      - read_file
+      - write_file
+      - edit_file
+      - swarm
+
+  architect:
+    role: "Lead Architect"
+    workspace: "inherit"
+    timeout_minutes: 15
+    max_review_rounds: 2
+    skills_preloaded:
+      - backend-architect
+      - architecture-patterns
+      - api-design-principles
+    skills_on_demand:
+      - c4-architecture-c4-architecture
+    tools:
+      - read_file
+      - write_file
+      - edit_file
+      - google-developer-knowledge
+      - mobbin
+
+  arch-critic:
+    role: "Architecture Critic"
+    workspace: "inherit"
+    timeout_minutes: 10
+    max_review_rounds: 2
+    skills_preloaded:
+      - adversarial-critic
+      - architect-review
+      - karpathy-guidelines
+    skills_on_demand:
+      - multi-cloud-architecture
+    tools:
+      - read_file
+      - google-developer-knowledge
+
+  backend-dev:
+    role: "Backend Engineer"
+    workspace: "share"
+    timeout_minutes: 20
+    max_review_rounds: 2
+    skills_preloaded:
+      - backend-development-feature-development
+      - database-migrations-sql-migrations
+      - backend-architect
+    skills_on_demand:
+      - sql-optimization-patterns
+    tools:
+      - run_command
+      - read_file
+      - write_file
+      - edit_file
+      - supabase
+      - firebase
+
+  backend-critic:
+    role: "Backend Critic"
+    workspace: "inherit"
+    timeout_minutes: 10
+    max_review_rounds: 2
+    skills_preloaded:
+      - adversarial-critic
+      - security-audit
+      - backend-security-coder
+    skills_on_demand:
+      - simon-willison-patterns
+      - database-optimizer
+    tools:
+      - run_command
+      - read_file
+      - supabase
+      - firebase
+
+  frontend-dev:
+    role: "Frontend Engineer"
+    workspace: "share"
+    timeout_minutes: 20
+    max_review_rounds: 2
+    skills_preloaded:
+      - frontend-developer
+      - frontend-ui-engineering
+      - tailwind-design-system
+    skills_on_demand:
+      - ui-ux-designer
+    tools:
+      - run_command
+      - read_file
+      - write_file
+      - edit_file
+      - chrome-devtools-plugin
+      - vercel-plugin
+
+  frontend-critic:
+    role: "Frontend Critic"
+    workspace: "inherit"
+    timeout_minutes: 10
+    max_review_rounds: 2
+    skills_preloaded:
+      - better-interface
+      - ui-visual-validator
+      - adversarial-critic
+    skills_on_demand:
+      - wcag-audit-patterns
+      - frontend-security-coder
+    tools:
+      - read_file
+      - chrome-devtools-plugin
+
+  qa-tester:
+    role: "QA Automation"
+    workspace: "inherit"
+    timeout_minutes: 15
+    max_review_rounds: 2
+    skills_preloaded:
+      - test-automator
+      - tdd-orchestrator
+      - hashimoto-harness-loop
+    skills_on_demand:
+      - e2e-testing-patterns
+    tools:
+      - run_command
+      - read_file
+      - write_file
+      - edit_file
+      - chrome-devtools-plugin
+      - testsprite
+
+  release-gatekeeper:
+    role: "Release Gatekeeper"
+    workspace: "inherit"
+    timeout_minutes: 10
+    max_review_rounds: 2
+    skills_preloaded:
+      - verification-before-completion
+      - deployment-engineer
+      - adversarial-critic
+    skills_on_demand:
+      - cicd-automation-workflow-automate
+      - observability-engineer
+    tools:
+      - run_command
+      - read_file
+      - chrome-devtools-plugin
+
+  monitor:
+    role: "Stall Monitor"
+    workspace: "inherit"
+    timeout_minutes: 30
+    max_review_rounds: 2
+    skills_preloaded:
+      - swarm_monitor
+    skills_on_demand: []
+    tools:
+      - swarm
