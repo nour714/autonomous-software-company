@@ -358,6 +358,32 @@ if (!fs.existsSync(cfgPath)) {
     configErrors.push("Missing expected execution modes in config");
   }
 
+  // Validate mode agent lists: quick <= 3 default agents and all 3 lists differ
+  function parseModeAgents(modeName) {
+    const modeSectionRegex = new RegExp(`${modeName}:[\\s\\S]*?typical_active_agents:([\\s\\S]*?)(?:routing_rules:|\\n\\s*\\w+:)`, "m");
+    const m = content.match(modeSectionRegex);
+    if (!m) return [];
+    return m[1].split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.startsWith("-"))
+      .map(l => l.replace(/^-\s*/, "").trim());
+  }
+
+  const quickAgents = parseModeAgents("quick");
+  const standardAgents = parseModeAgents("standard");
+  const enterpriseAgents = parseModeAgents("enterprise");
+
+  if (quickAgents.length === 0 || quickAgents.length > 3) {
+    configErrors.push(`quick mode typical_active_agents must have 1 to 3 agents (found ${quickAgents.length})`);
+  }
+  const quickKey = [...quickAgents].sort().join(",");
+  const standardKey = [...standardAgents].sort().join(",");
+  const enterpriseKey = [...enterpriseAgents].sort().join(",");
+
+  if (quickKey === standardKey || quickKey === enterpriseKey || standardKey === enterpriseKey) {
+    configErrors.push(`The three execution modes typical_active_agents must differ: quick=[${quickAgents}], standard=[${standardAgents}], enterprise=[${enterpriseAgents}]`);
+  }
+
   const hasTier0 = content.includes("tier_0:");
   const hasTier1 = content.includes("tier_1:");
   const hasTier2 = content.includes("tier_2:");

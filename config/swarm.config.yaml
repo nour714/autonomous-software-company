@@ -20,25 +20,16 @@ execution_modes:
     typical_active_agents:
       - dispatcher
       - backend-dev
-      - frontend-dev
-      - qa-tester
-      - release-gatekeeper
-      - monitor
-    routing_rules: "Skip architect and arch-critic when contract specifications are established; single critic review pass."
+    routing_rules: "Dispatcher + one relevant developer (backend-dev or frontend-dev); lightweight critic added only when tier_1; qa-tester only if test-heavy; no architect unless required."
   standard:
     description: "Default full-pipeline engineering workflow with shift-left TDD and parallel development."
     typical_active_agents:
       - dispatcher
-      - architect
-      - arch-critic
       - backend-dev
-      - backend-critic
       - frontend-dev
-      - frontend-critic
       - qa-tester
       - release-gatekeeper
-      - monitor
-    routing_rules: "Full architecture sign-off preceding parallel backend/frontend tracks; max 2 review rounds before gatekeeper."
+    routing_rules: "Dispatcher + only specialists needed for the task (4-5 typical); full architecture sign-off preceding parallel backend/frontend tracks; max 2 review rounds before gatekeeper."
   enterprise:
     description: "High-assurance audit workflow with deep security scanning, accessibility verification, and ADR generation."
     typical_active_agents:
@@ -52,7 +43,7 @@ execution_modes:
       - qa-tester
       - release-gatekeeper
       - monitor
-    routing_rules: "Mandatory tier_2 risk controls, full OWASP top 10 and WCAG AA audits, complete coverage ledger validation."
+    routing_rules: "Mandatory tier_2 risk controls, all 10 specialized squad agents active, full OWASP top 10 and WCAG AA audits, complete coverage ledger validation."
 
 risk_tiers:
   tier_0:
