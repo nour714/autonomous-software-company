@@ -125,6 +125,15 @@ for (const dir of skillDirs) {
   }
 }
 
+// Validate rules/swarm-orchestration.md line count <= 120
+const swarmRulesPath = path.join(repoRoot, "rules", "swarm-orchestration.md");
+if (fs.existsSync(swarmRulesPath)) {
+  const ruleLines = fs.readFileSync(swarmRulesPath, "utf8").split(/\r?\n/).length;
+  if (ruleLines > 120) {
+    sizeErrors.push(`rules/swarm-orchestration.md exceeds 120 lines: ${ruleLines}`);
+  }
+}
+
 report("2: Skill size validation (bounds: new <=80, split <=120, unsplit <=150)", sizeErrors.length === 0, sizeErrors);
 
 // -------------------------------------------------------------
@@ -258,8 +267,15 @@ checkMarkdownLinksInFile(path.join(repoRoot, "README.md"));
 const rulesDir = path.join(repoRoot, "rules");
 if (fs.existsSync(rulesDir)) {
   for (const f of fs.readdirSync(rulesDir)) {
+    const fullP = path.join(rulesDir, f);
     if (f.endsWith(".md")) {
-      checkMarkdownLinksInFile(path.join(rulesDir, f));
+      checkMarkdownLinksInFile(fullP);
+    } else if (fs.statSync(fullP).isDirectory()) {
+      for (const rf of fs.readdirSync(fullP)) {
+        if (rf.endsWith(".md")) {
+          checkMarkdownLinksInFile(path.join(fullP, rf));
+        }
+      }
     }
   }
 }
