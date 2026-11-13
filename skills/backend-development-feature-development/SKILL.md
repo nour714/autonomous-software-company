@@ -4,6 +4,8 @@ name: backend-development-feature-development
 
 description: "Orchestrate end-to-end backend feature development from requirements to deployment. Use when coordinating multi-phase feature delivery across teams and services."
 
+metadata:
+  icon: code
 ---
 
 Orchestrate end-to-end feature development from requirements to production deployment:

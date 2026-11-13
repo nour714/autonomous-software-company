@@ -5,6 +5,7 @@ description: Build production-ready monitoring, logging, and tracing systems.
   incident response workflows. Use for monitoring infrastructure,
   performance optimization, or production reliability.
 metadata:
+  icon: monitoring
   model: inherit
 ---
 

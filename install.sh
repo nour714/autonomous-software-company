@@ -17,9 +17,10 @@ SOURCE_SKILLS="$SOURCE_ROOT/skills"
 SOURCE_RULES="$SOURCE_ROOT/rules"
 SOURCE_AGENTS="$SOURCE_ROOT/agents"
 
-TARGET_SKILLS="$HOME/.gemini/config/skills"
-TARGET_RULES="$HOME/.gemini/config/rules" # TODO(verify) exact Antigravity rules discovery path
-TARGET_AGENTS="$HOME/.gemini/config/agents"
+BASE_TARGET="${SWARM_TARGET_DIR:-$HOME/.gemini/config}"
+TARGET_SKILLS="$BASE_TARGET/skills"
+TARGET_RULES="$BASE_TARGET/rules" # TODO(verify) exact Antigravity rules discovery path
+TARGET_AGENTS="$BASE_TARGET/agents"
 
 # Validate source directories
 for dir in "$SOURCE_SKILLS" "$SOURCE_RULES" "$SOURCE_AGENTS"; do
@@ -81,19 +82,19 @@ mkdir -p "$TARGET_SKILLS" "$TARGET_RULES" "$TARGET_AGENTS"
 installed_skills=0
 for skill in "${SKILL_DIRS[@]}"; do
   cp -r "$skill" "$TARGET_SKILLS/"
-  ((installed_skills++))
+  installed_skills=$((installed_skills + 1))
 done
 
 installed_rules=0
 for rule in "${RULE_FILES[@]}"; do
   cp "$rule" "$TARGET_RULES/"
-  ((installed_rules++))
+  installed_rules=$((installed_rules + 1))
 done
 
 installed_agents=0
 for agent in "${AGENT_FILES[@]}"; do
   cp "$agent" "$TARGET_AGENTS/"
-  ((installed_agents++))
+  installed_agents=$((installed_agents + 1))
 done
 
 echo "============================================================"

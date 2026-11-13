@@ -22,9 +22,15 @@ $sourceSkills = Join-Path $sourceRoot "skills"
 $sourceRules  = Join-Path $sourceRoot "rules"
 $sourceAgents = Join-Path $sourceRoot "agents"
 
-$targetSkills = "$env:USERPROFILE\.gemini\config\skills"
-$targetRules  = "$env:USERPROFILE\.gemini\config\rules" # TODO(verify) exact Antigravity rules discovery path
-$targetAgents = "$env:USERPROFILE\.gemini\config\agents"
+$baseTarget = if ($env:SWARM_TARGET_DIR) {
+    $env:SWARM_TARGET_DIR
+} else {
+    "$env:USERPROFILE\.gemini\config"
+}
+
+$targetSkills = Join-Path $baseTarget "skills"
+$targetRules  = Join-Path $baseTarget "rules" # TODO(verify) exact Antigravity rules discovery path
+$targetAgents = Join-Path $baseTarget "agents"
 
 # Validate required source directories
 foreach ($dir in @($sourceSkills, $sourceRules, $sourceAgents)) {

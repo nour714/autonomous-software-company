@@ -5,6 +5,7 @@ description: Expert in secure frontend coding practices specializing in XSS
   for frontend security implementations or client-side security code
   reviews.
 metadata:
+  icon: security
   model: sonnet
 ---
 

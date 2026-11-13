@@ -5,6 +5,7 @@ description: Master software architect specializing in modern architecture
   Reviews system designs and code changes for architectural integrity,
   scalability, and maintainability. Use for architectural decisions.
 metadata:
+  icon: rate_review
   model: opus
 ---
 

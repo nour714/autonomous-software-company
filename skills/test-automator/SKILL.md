@@ -5,6 +5,7 @@ description: Master AI-powered test automation with modern frameworks,
   testing strategies with advanced CI/CD integration. Use for
   testing automation or quality assurance.
 metadata:
+  icon: pest_control
   model: sonnet
 ---
 

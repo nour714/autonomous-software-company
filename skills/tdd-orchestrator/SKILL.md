@@ -6,6 +6,7 @@ description: Master TDD orchestrator specializing in red-green-refactor
   AI-assisted testing and modern frameworks. Use for TDD
   implementation and governance.
 metadata:
+  icon: flaky
   model: opus
 ---
 

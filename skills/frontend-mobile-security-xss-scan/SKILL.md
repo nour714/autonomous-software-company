@@ -4,6 +4,8 @@ name: frontend-mobile-security-xss-scan
 
 description: "Detect and remediate XSS risks in React, Vue, Angular, and browser JavaScript. Use when inspecting injection sinks, untrusted markup, sanitization, or frontend security checks."
 
+metadata:
+  icon: security
 ---
 
 # XSS Vulnerability Scanner for Frontend Code

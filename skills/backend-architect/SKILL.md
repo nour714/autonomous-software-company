@@ -7,6 +7,7 @@ description: Expert backend architect specializing in scalable API design,
   resilience patterns, and observability. Use when creating new
   backend services or APIs.
 metadata:
+  icon: dns
   model: inherit
 ---
 

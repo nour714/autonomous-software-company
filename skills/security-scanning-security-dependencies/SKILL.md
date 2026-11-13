@@ -1,6 +1,8 @@
 ---
 name: security-scanning-security-dependencies
 description: "Scan project dependencies across ecosystems for vulnerabilities, generate SBOMs, assess supply chain risk, and recommend remediation. Use when auditing dependency security or producing an SBOM."
+metadata:
+  icon: inventory_2
 ---
 
 # Dependency Vulnerability Scanning

@@ -7,6 +7,7 @@ description: Expert database optimizer specializing in modern performance
   strategies, and performance monitoring. Use for database
   optimization, performance issues, or scalability challenges.
 metadata:
+  icon: tune
   model: inherit
 ---
 

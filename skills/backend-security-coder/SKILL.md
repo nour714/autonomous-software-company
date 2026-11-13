@@ -4,6 +4,7 @@ description: Expert in secure backend coding practices specializing in input
   validation, authentication, and API security. Use for backend
   security implementations or security code reviews.
 metadata:
+  icon: security
   model: sonnet
 ---
 

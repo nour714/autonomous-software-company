@@ -4,6 +4,7 @@ description: Create interface designs, wireframes, and design systems. Masters
   user research, accessibility standards, and modern design tools. Specializes
   in design tokens, component libraries, and inclusive design. Use for design systems, user flows, or interface optimization.
 metadata:
+  icon: design_services
   model: sonnet
 ---
 

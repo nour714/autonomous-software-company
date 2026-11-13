@@ -5,6 +5,7 @@ description: Build React components, implement responsive layouts, and handle
   frontend architecture. Optimizes performance and ensures accessibility. Use
   when creating UI components or fixing frontend issues.
 metadata:
+  icon: web
   model: inherit
 ---
 

@@ -7,6 +7,7 @@ description: Expert deployment engineer specializing in modern CI/CD pipelines,
   developer experience optimization. Use for CI/CD design, GitOps
   implementation, or deployment automation.
 metadata:
+  icon: rocket_launch
   model: haiku
 ---
 

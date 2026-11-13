@@ -4,6 +4,8 @@ name: c4-architecture-c4-architecture
 
 description: "Generate comprehensive C4 architecture documentation for an existing repository/codebase using a bottom-up analysis approach."
 
+metadata:
+  icon: schema
 ---
 
 # C4 Architecture Documentation Workflow

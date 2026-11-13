@@ -1,6 +1,8 @@
 ---
 name: cicd-automation-workflow-automate
 description: "Design efficient CI/CD pipelines, GitHub Actions workflows, and automated development processes that reduce manual work and accelerate delivery while maintaining quality and security. Use when creating or improving build, test, and deployment automation."
+metadata:
+  icon: sync_alt
 ---
 
 # Workflow Automation

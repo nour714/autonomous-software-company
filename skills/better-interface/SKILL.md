@@ -1,6 +1,8 @@
 ---
 name: better-interface
 description: Reviews a screen, flow or whole interface across accessibility, layout, writing, typography, color and UI polish, and returns one ranked report.
+metadata:
+  icon: widgets
 ---
 
 # Interface
