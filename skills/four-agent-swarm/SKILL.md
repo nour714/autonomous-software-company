@@ -36,6 +36,12 @@ The Dispatcher evaluates 8 factors (complexity, affected modules, security impac
 - **Standard Mode (4–5 agents):** Normal features, DB-backed endpoints, moderate refactors. `Dispatcher -> Architecture -> Parallel Devs -> Relevant Critic(s) -> QA -> Release Gatekeeper`.
 - **Enterprise Mode (9 working agents + 1 Monitor = 10 agents):** Platform-wide features, core architecture, critical auth/database migrations. Full squad engagement.
 
+### Trigger -> Mode Mapping Rules
+- **Explicit Enterprise:** `"شغل 9 ايجنت"`, `"شغل الفريق"`, `"شغل الشركة البرمجية"` force Enterprise mode (all 10 agents active).
+- **Explicit 4-Agent Track:** `"شغل 4 ايجنت"` forces the 4 Builder-Critic tracks + Dispatcher.
+- **Dynamic Selection:** `"/swarm"` or `"swarm team"` alone lets the Dispatcher pick the smallest safe mode (`quick`, `standard`, or `enterprise`).
+- **User Override:** Explicit user override (`/swarm quick|standard|enterprise`) always wins. Never silently downgrade an explicit request.
+
 ### Risk-Tiered Review (Stored in `.swarm/state.json`)
 - **Tier 0 (Fast Lane — 5m budget):** Docs, comments, non-security config. No critic required; author self-verifies with `git diff`.
 - **Tier 1 (Standard Review — 15m budget):** Normal features, routine APIs. Diff-scoped review by 1 lightweight critic; targeted tests.

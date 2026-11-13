@@ -327,9 +327,17 @@ if (!fs.existsSync(fourAgentSkillPath)) {
       triggerErrors.push(`Trigger phrase "${phrase}" missing from skills/four-agent-swarm/SKILL.md`);
     }
   }
+
+  // Verify Trigger -> mode mapping rule is documented
+  if (!content.includes("Trigger -> Mode") && !content.includes("Trigger -> mode")) {
+    triggerErrors.push("Missing Trigger -> mode rule section in skills/four-agent-swarm/SKILL.md");
+  }
+  if (!content.includes("never silently downgrade") && !content.includes("Never silently downgrade")) {
+    triggerErrors.push("Missing never silently downgrade rule in skills/four-agent-swarm/SKILL.md");
+  }
 }
 
-report("6: Trigger phrase preservation (all 6 trigger phrases verified)", triggerErrors.length === 0, triggerErrors);
+report("6: Trigger phrase preservation and Trigger -> mode rules verified", triggerErrors.length === 0, triggerErrors);
 
 // -------------------------------------------------------------
 // Check 7: Configuration validation (config/swarm.config.yaml)
@@ -414,6 +422,16 @@ if (totalErrors > 0) {
   console.log(`\nAll ${passedChecks} checks passed cleanly.`);
 }
 ' "${REPO_ROOT}"
+
+# Trigger -> mode grep verification
+echo "[CHECK] Verifying Trigger -> mode mapping rule via grep..."
+if grep -qi "Trigger -> mode" "${REPO_ROOT}/skills/four-agent-swarm/SKILL.md" && \
+   grep -qi "never silently downgrade" "${REPO_ROOT}/skills/four-agent-swarm/SKILL.md"; then
+  echo "  [PASS] Trigger -> mode rule grep verified in skills/four-agent-swarm/SKILL.md."
+else
+  echo "  [FAIL] skills/four-agent-swarm/SKILL.md missing Trigger -> mode rule" >&2
+  exit 1
+fi
 
 # -------------------------------------------------------------
 # Check 8: Installer dry-run verification
