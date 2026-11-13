@@ -7,7 +7,7 @@ Canonical rules and governance standards for the autonomous engineering system. 
 ## 1. Squad Roster & Responsibilities
 The autonomous engineering team operates as a **10-agent squad (4 Builder-Critic tracks + Dispatcher + Monitor)**:
 
-1. 🎯 `dispatcher`: Requirement deconstruction, adaptive mode selection, risk-tier assignment, task allocation, and dependency tracking.
+1. 🎯 `dispatcher`: Requirement deconstruction, adaptive mode selection, risk-tier assignment, task allocation, dependency tracking, and file lease management.
 2. 🏛️ `architect` & 🧐 `arch-critic`: System architecture, domain models, interface definitions, contract freeze sign-off, and over-engineering defense.
 3. ⚙️ `backend-dev` & 🛡️ `backend-critic`: Server endpoints, data validation, database schemas/migrations, and diff-scoped security audits (`security-audit`).
 4. 🎨 `frontend-dev` & 👁️ `frontend-critic`: Responsive user interfaces (360px+), accessibility (WCAG 2.1 AA), mock-driven development, and interface auditing (`better-interface`).
@@ -121,3 +121,72 @@ Risk tiers govern reviewer depth and time budgets, stored by Dispatcher in `.swa
 - **Severity Gates:**
   - `BLOCKER` & `HIGH`: Security vulnerabilities, contract breaks, test failures, or data loss. **Strictly block handoff.**
   - `MEDIUM` & `LOW`: Polish, styling notes, non-critical refactors. Appended to `.swarm/followups.md` without blocking handoff. Never downgrade a security blocker to accelerate delivery.
+
+---
+
+## 9. Shared Swarm Run State (`.swarm/` Ephemeral Architecture)
+The `.swarm/` directory is strictly ignored by Git (`.gitignore`). It stores local runtime execution state and telemetry:
+
+1. `.swarm/state.json`: The single authoritative task registry and file-ownership lease database, managed exclusively by `@dispatcher`.
+   - `schema_version: 1`
+   - `tasks`: Array of active/completed tasks containing:
+     - `task_id`: Unique identifier (e.g., `TASK-001`).
+     - `mode`: Selected execution mode (`quick`, `standard`, `enterprise`).
+     - `tier`: Assigned risk tier (`tier_0`, `tier_1`, `tier_2`).
+     - `owner`: Currently assigned agent name.
+     - `owned_files`: List of files leased to this agent (max 5 files).
+     - `lease_status`: `"active"` or `"revoked"`.
+     - `status`: `"pending"`, `"in_progress"`, `"review"`, `"completed"`, or `"blocked"`.
+     - `time_budget_minutes`: Numeric minute budget for task unit.
+     - `review_rounds`: Current review cycle count (0, 1, or 2).
+     - `dependencies`: List of preceding task IDs.
+     - `started_at`, `updated_at`, `last_heartbeat_at`: ISO 8601 timestamps.
+2. `.swarm/followups.md`: Append-only markdown log for deferred `MEDIUM` and `LOW` findings. Each entry records `TASK_ID`, file path, reporting critic, and description.
+3. `.swarm/metrics.jsonl`: Append-only JSON Lines performance log. Supports two record types:
+   - `"record_type": "agent_run"`: Tracks per-agent turn duration, files modified, tool calls, and model used.
+   - `"record_type": "task_summary"`: Tracks end-to-end task completion time, risk tier, review rounds, fallback count, stall count, and final verdict. Record token/cost metrics only when exposed by the runtime; never fabricate numbers.
+
+---
+
+## 10. Intelligent Stall Detection, Safe Reassignment & File Ownership Locks
+1. **File Ownership Locks:**
+   - There must be exactly **one active writer per file** at any given moment, recorded in `.swarm/state.json`.
+   - Critics and reviewers have read-only access.
+   - `@qa-tester` owns only assigned test files and fixtures.
+   - Shared integration files (e.g., route registries) have a single designated owner per task.
+2. **Stall Detection Procedure:**
+   - `@monitor` tracks the latest turn and heartbeat of active agents.
+   - At **3 minutes** of inactivity, `@monitor` issues a public board ping with the exact `TASK_ID` to awaken the worker.
+   - `@monitor` waits **2 additional minutes**; if no progress or heartbeat is recorded, it escalates to `@dispatcher`.
+3. **Safe Reassignment Protocol:**
+   - Before `@dispatcher` reassigns any task or file to a fallback agent:
+     1. It MUST confirm the previous worker is stopped or detached.
+     2. It updates `.swarm/state.json` setting `lease_status: "revoked"`.
+     3. It restores the latest verified clean file state via `git checkout` or rollback patch.
+     4. It grants explicit ownership and lease status `"active"` to the new agent.
+     5. If the runtime cannot reliably guarantee the previous agent is halted, **never spawn a duplicate concurrent writer**.
+4. **Critic Timeout Rules:**
+   - **Tier 0:** Author self-verifies; no critic delay possible.
+   - **Tier 1:** If the critic review budget expires without blockers detected, the task may proceed with an explicit `UNREVIEWED` marker.
+   - **Tier 2:** Tasks touching auth, payments, security, or migrations **NEVER** proceed unreviewed. If a Tier 2 critic stalls, `@dispatcher` escalates immediately to hot-swap or emergency manual intervention.
+
+---
+
+## 11. Dynamic Model Routing, Fallback & Targeted Test Optimization
+1. **Dynamic Model Routing:**
+   - Low-risk and rapid tasks (Tier 0/1) use fast, responsive models.
+   - High-risk tasks (Tier 2) mandate the strongest configured critic model for adversarial verification.
+   - Architectural reasoning activates deep reasoning only during novel system design or contract definition.
+   - On the first verified quota, rate-limit, or model error, switch immediately to `model_fallback` without retries.
+2. **Targeted Test Optimization:**
+   - Authors run only targeted tests covering modified files (unit, linter, typecheck).
+   - `@qa-tester` drafts deterministic contract tests early and runs integration tests relevant to the changed track.
+   - `@release-gatekeeper` executes the complete test suite once at the final release gate for Tier 1 and Tier 2 tasks.
+
+---
+
+## 12. Project Context Memory (`.swarm/project-context.md`)
+- All agents read `.swarm/project-context.md` at task startup to synchronize architecture knowledge and constraints.
+- Generated from `config/project-context.template.md` with verified Git commit hash (`git rev-parse HEAD`).
+- If Git HEAD differs from the recorded commit, the context memory must be refreshed.
+- **Strict Prohibition:** Never store secrets, passwords, tokens, API keys, or private endpoints in project memory.

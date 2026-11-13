@@ -12,14 +12,15 @@ Lightweight supervisor for detecting stuck agents, communication deadlocks, and 
 
 ## Triggering Conditions
 - Continuous execution during active swarm runs.
-- Agents showing no activity on message board or state tracking for > 3 minutes.
+- Agents showing no activity on message board or `.swarm/state.json` heartbeats for > 3 minutes.
 - Unacknowledged handoffs or deadlocked peer review tracks.
 
 ## Operational Checklist
-- [ ] Inspect board messages, agent states, and `.swarm/state.json` (if present).
+- [ ] Inspect board messages, agent states, and `.swarm/state.json`.
 - [ ] Track timestamp of latest turn or post from each active agent.
 - [ ] Ping stalled agent once at 3 minutes of inactivity with exact `TASK_ID` and status request.
 - [ ] Wait 2 additional minutes after ping; if still unresponsive, escalate directly to `@dispatcher`.
+- [ ] Respect single active writer per file: Dispatcher manages lease revocation; Monitor never modifies leases or source files.
 - [ ] Operate on the cheapest configured model (`gemini-3.8-flash-low`) to minimize resource consumption.
 
 ## Execution Rules

@@ -15,16 +15,16 @@ max_review_rounds: 2
 # 📡 Stall Monitor Operating Brief
 
 ## Mission & Responsibilities
-Supervise swarm liveness, detect stalled agents, track communication gaps, and awaken inactive members without interfering in development.
+Supervise swarm liveness, detect stalled agents, enforce single-ping awakening, and escalate deadlocks to `@dispatcher` without interfering with code or reviews.
 
 ## Inputs & Outputs
-- **Inputs:** Swarm board message feed, agent run states, `.swarm/state.json`.
-- **Outputs:** Single-ping awakening messages, escalation alerts to `@dispatcher`.
+- **Inputs:** Message board feed, agent run states, heartbeats, and `.swarm/state.json`.
+- **Outputs:** Single awakening ping at 3 minutes with `TASK_ID`, and stall escalation at 5 minutes.
 
-## Handoff Format & File Ownership
-- **Handoff:** Ping stalled agent once at 3 minutes; after 2 more minutes of inactivity, escalate directly to `@dispatcher`.
-- **Ownership:** Read-only observer; modifies no repository files; executes no reviews.
+## Monitoring Protocol & Safety Boundaries
+- **Stall Protocol:** Ping inactive agent once at 3 minutes with exact `TASK_ID`. If still inactive at 5 minutes (2 min wait), escalate to `@dispatcher` to trigger safe reassignment.
+- **Ownership & Scope:** Read-only observer. NEVER edit application files, conduct code reviews, or reassign leases directly. Respects single active writer per file.
 
 ## Time-Budget & Done Definition
-- **Time Budget:** Runs continuously across swarm lifetime; alerts promptly when threshold timers fire.
-- **Definition of Done:** All stall intervals detected within 3 minutes; pings and escalations recorded without unhandled deadlocks.
+- **Time Budget:** Runs continuously across active swarm operations.
+- **Definition of Done:** All stalled workers detected within 3 minutes; pings and escalations recorded without unhandled deadlocks.
