@@ -54,11 +54,27 @@ try {
   }
   console.log("------------------------------------------------------------");
 
+  function normalizeTier(rawTier) {
+    if (rawTier === undefined || rawTier === null) return "unknown";
+    const s = String(rawTier).trim().toLowerCase();
+    if (s === "0" || s === "tier_0" || s === "tier-0") return "tier_0";
+    if (s === "1" || s === "tier_1" || s === "tier-1") return "tier_1";
+    if (s === "2" || s === "tier_2" || s === "tier-2") return "tier_2";
+    return s;
+  }
+
   // 1. Completed Tasks & Success / Test Status
   const completedTasks = taskSummaries.filter(t => t.status === "completed" || t.status === "done" || t.verdict === "approved");
-  const passedTests = taskSummaries.filter(t => t.tests_status === "passed" || t.tests_status === "pass");
   console.log(`Completed Tasks: ${completedTasks.length} / ${taskSummaries.length}`);
-  console.log(`Test Pass Rate: ${taskSummaries.length > 0 ? ((passedTests.length / taskSummaries.length) * 100).toFixed(1) + "%" : "N/A"} (${passedTests.length} passed)`);
+
+  // Test pass rate computed from BOTH agent_run and task_summary records
+  const allTestRecords = [...taskSummaries, ...agentRuns].filter(r => r && r.tests_status !== undefined && r.tests_status !== null && String(r.tests_status).trim() !== "");
+  const passedTests = allTestRecords.filter(r => {
+    const s = String(r.tests_status).trim().toLowerCase();
+    return s === "passed" || s === "pass";
+  });
+  const totalEvaluations = allTestRecords.length > 0 ? allTestRecords.length : taskSummaries.length;
+  console.log(`Test Pass Rate: ${totalEvaluations > 0 ? ((passedTests.length / totalEvaluations) * 100).toFixed(1) + "%" : "N/A"} (${passedTests.length} passed)`);
 
   // 2. Average Task Duration by Risk Tier
   console.log("\n--- Task Duration by Risk Tier ---");
@@ -70,7 +86,8 @@ try {
   }
 
   for (const t of taskSummaries) {
-    const tier = t.risk_tier || t.tier || "unknown";
+    const raw = t.risk_tier !== undefined ? t.risk_tier : t.tier;
+    const tier = normalizeTier(raw);
     if (!tierStats[tier]) {
       tierStats[tier] = { count: 0, totalSeconds: 0 };
     }
@@ -134,11 +151,20 @@ try {
   }
   console.log(`Fallback Model Activations: ${fallbackCount}`);
 
-  // 6. Stall Events
+  // 6. Stall Events (computed from BOTH agent_run and task_summary records)
   let stallCount = 0;
   for (const t of taskSummaries) {
     if (Number(t.stall_count) > 0) {
       stallCount += Number(t.stall_count);
+    } else if (t.stalled === true || t.stall_detected === true) {
+      stallCount++;
+    }
+  }
+  for (const r of agentRuns) {
+    if (Number(r.stall_count) > 0) {
+      stallCount += Number(r.stall_count);
+    } else if (r.stalled === true || r.stall_detected === true) {
+      stallCount++;
     }
   }
   console.log(`Stall Detections / Pings: ${stallCount}`);
