@@ -1,0 +1,90 @@
+# Cloud-Agnostic Architecture, Migration & Best Practices
+
+## Cloud-Agnostic Architecture
+
+### Use Cloud-Native Alternatives
+
+- **Compute:** Kubernetes (EKS/AKS/GKE)
+- **Database:** PostgreSQL/MySQL (RDS/SQL Database/Cloud SQL)
+- **Message Queue:** Apache Kafka (MSK/Event Hubs/Confluent)
+- **Cache:** Redis (ElastiCache/Azure Cache/Memorystore)
+- **Object Storage:** S3-compatible API
+- **Monitoring:** Prometheus/Grafana
+- **Service Mesh:** Istio/Linkerd
+
+### Abstraction Layers
+
+```
+Application Layer
+    ↓
+Infrastructure Abstraction (Terraform)
+    ↓
+Cloud Provider APIs
+    ↓
+AWS / Azure / GCP
+```
+
+## Cost Comparison
+
+### Compute Pricing Factors
+
+- **AWS:** On-demand, Reserved, Spot, Savings Plans
+- **Azure:** Pay-as-you-go, Reserved, Spot
+- **GCP:** On-demand, Committed use, Preemptible
+
+### Cost Optimization Strategies
+
+1. Use reserved/committed capacity (30-70% savings)
+2. Leverage spot/preemptible instances
+3. Right-size resources
+4. Use serverless for variable workloads
+5. Optimize data transfer costs
+6. Implement lifecycle policies
+7. Use cost allocation tags
+8. Monitor with cloud cost tools
+
+
+## Migration Strategy
+
+### Phase 1: Assessment
+- Inventory current infrastructure
+- Identify dependencies
+- Assess cloud compatibility
+- Estimate costs
+
+### Phase 2: Pilot
+- Select pilot workload
+- Implement in target cloud
+- Test thoroughly
+- Document learnings
+
+### Phase 3: Migration
+- Migrate workloads incrementally
+- Maintain dual-run period
+- Monitor performance
+- Validate functionality
+
+### Phase 4: Optimization
+- Right-size resources
+- Implement cloud-native services
+- Optimize costs
+- Enhance security
+
+## Best Practices
+
+1. **Use infrastructure as code** (Terraform/OpenTofu)
+2. **Implement CI/CD pipelines** for deployments
+3. **Design for failure** across clouds
+4. **Use managed services** when possible
+5. **Implement comprehensive monitoring**
+6. **Automate cost optimization**
+7. **Follow security best practices**
+8. **Document cloud-specific configurations**
+9. **Test disaster recovery** procedures
+10. **Train teams** on multiple clouds
+
+## Related Skills
+
+- `terraform-module-library` - For IaC implementation
+- `cost-optimization` - For cost management
+- `hybrid-cloud-networking` - For connectivity
