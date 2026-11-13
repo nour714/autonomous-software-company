@@ -107,7 +107,7 @@ Model assignments and fallback policies are defined centrally in [`config/swarm.
 ## 7. Project Context Memory
 
 Squad agents read local project memory at task start:
-- Stored locally in [`.swarm/project-context.md`](.swarm/project-context.md) (gitignored).
+- Stored locally in `.swarm/project-context.md` (gitignored).
 - Canonical template maintained in [`config/project-context.template.md`](config/project-context.template.md).
 - Enforces 13 comprehensive architectural sections, verified Git commit hash (`git rev-parse HEAD`), and zero secret exposure.
 
