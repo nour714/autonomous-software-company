@@ -31,3 +31,10 @@ Readiness and security scores derive exclusively from objective tool gates; subj
 - **P0 Score Capping**: Any open P0 finding caps overall readiness at 60 and security score at 70.
 - **Mutation Score**: Must come from a real tool run (e.g. Stryker); otherwise reported as `"NOT MEASURED"`. Hand-picked mutants may be listed but never labeled as a mutation score.
 
+## Intent Check Protocol
+Before classifying any finding as a `bug`:
+1. Inspect `git blame`, recent `git log`, and relevant ADRs for the target lines.
+2. If the behavior was deliberate or intentional, classify as `intent_check: product_decision_needed`.
+3. Provide constructive options and trade-offs instead of reflexively recommending removal.
+
+
