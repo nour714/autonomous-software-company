@@ -44,5 +44,9 @@ Citations must include both standard version and level from the [WCAG Levels Ref
 - Criterion 1.4.3 = Level AA (Contrast minimum).
 Never report an AAA failure as an AA violation.
 
+## Platform Limits Rule
+All infrastructure recommendations (cron cadence, execution timeouts, connection limits, plan limits) require checking current provider documentation. If unconfirmed, mark with `TODO(verify)` and state underlying assumptions.
+
+
 
 
