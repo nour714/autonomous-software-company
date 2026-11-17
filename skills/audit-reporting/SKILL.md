@@ -37,4 +37,12 @@ Before classifying any finding as a `bug`:
 2. If the behavior was deliberate or intentional, classify as `intent_check: product_decision_needed`.
 3. Provide constructive options and trade-offs instead of reflexively recommending removal.
 
+## Standards Citation & WCAG Compliance
+Citations must include both standard version and level from the [WCAG Levels Reference](references/wcag-levels.md):
+- Criterion 2.5.5 = Level AAA (WCAG 2.1, 44px).
+- Criterion 2.5.8 = Level AA (WCAG 2.2, 24px).
+- Criterion 1.4.3 = Level AA (Contrast minimum).
+Never report an AAA failure as an AA violation.
+
+
 
