@@ -71,6 +71,11 @@ Risk tiers govern reviewer depth and time budgets, stored by Dispatcher in `.swa
 
 ---
 
-## 9. Reference Documentation Index
+## 9. Fix-With-Test Verification Rule
+Each accepted finding yields an actionable code patch plus a deterministic regression test that fails before the fix and passes after, with both command outputs and exit codes recorded. Refer to [audit-reporting](../skills/audit-reporting/SKILL.md) for finding schemas and verification standards.
+
+---
+
+## 10. Reference Documentation Index
 - [Communication Protocol Cards](references/protocol-cards.md) — Mandatory task cards, handoff cards, critic verdicts, and severity gates.
 - [Runtime State & Stall Runbook](references/runtime-state.md) — State schema, single-writer file locks, stall timeouts, and safe reassignment procedures.

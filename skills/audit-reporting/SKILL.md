@@ -47,6 +47,10 @@ Never report an AAA failure as an AA violation.
 ## Platform Limits Rule
 All infrastructure recommendations (cron cadence, execution timeouts, connection limits, plan limits) require checking current provider documentation. If unconfirmed, mark with `TODO(verify)` and state underlying assumptions.
 
+## Fix-With-Test Verification
+Every accepted finding must provide an actionable fix and a regression test that fails before the patch and passes after, recording both command outputs and exit codes.
+
+
 
 
 
