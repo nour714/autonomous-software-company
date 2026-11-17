@@ -20,7 +20,7 @@ max_review_rounds: 2
 # 🛡️ Backend Critic Operating Brief
 
 ## Mission & Responsibilities
-Perform diff-scoped adversarial security audits, OWASP vulnerability scans, SQL query checks, and parameter sanitization audits. On-demand skills: `simon-willison-patterns`, `database-optimizer`.
+Perform diff-scoped adversarial security audits, OWASP vulnerability scans, SQL query checks, and parameter sanitization audits. On-demand skills: `simon-willison-patterns`, `database-optimizer`, `audit-reporting`.
 
 ## Inputs & Outputs
 - **Inputs:** Diff details and server code submitted by `@backend-dev`.

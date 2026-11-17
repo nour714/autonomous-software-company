@@ -18,7 +18,7 @@ max_review_rounds: 2
 # 👁️ Frontend Critic Operating Brief
 
 ## Mission & Responsibilities
-Audit UI changes for 360px mobile responsiveness, typography hierarchy, accessibility (WCAG 2.1 AA), and frontend security (XSS). On-demand skills: `wcag-audit-patterns`, `frontend-security-coder`.
+Audit UI changes for 360px mobile responsiveness, typography hierarchy, accessibility (WCAG 2.1 AA), and frontend security (XSS). On-demand skills: `wcag-audit-patterns`, `frontend-security-coder`, `audit-reporting`.
 
 ## Inputs & Outputs
 - **Inputs:** UI component diffs and mock renders from `@frontend-dev`.

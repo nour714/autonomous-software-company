@@ -131,6 +131,7 @@ agent_profiles:
       - karpathy-guidelines
     skills_on_demand:
       - multi-cloud-architecture
+      - audit-reporting
     tools:
       - read_file
       - google-developer-knowledge
@@ -166,6 +167,7 @@ agent_profiles:
     skills_on_demand:
       - simon-willison-patterns
       - database-optimizer
+      - audit-reporting
     tools:
       - run_command
       - read_file
@@ -203,6 +205,7 @@ agent_profiles:
     skills_on_demand:
       - wcag-audit-patterns
       - frontend-security-coder
+      - audit-reporting
     tools:
       - read_file
       - chrome-devtools-plugin
@@ -218,6 +221,7 @@ agent_profiles:
       - hashimoto-harness-loop
     skills_on_demand:
       - e2e-testing-patterns
+      - audit-reporting
     tools:
       - run_command
       - read_file
@@ -238,6 +242,7 @@ agent_profiles:
     skills_on_demand:
       - cicd-automation-workflow-automate
       - observability-engineer
+      - audit-reporting
     tools:
       - run_command
       - read_file

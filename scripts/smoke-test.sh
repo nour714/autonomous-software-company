@@ -88,7 +88,7 @@ for (const dir of skillDirs) {
   }
 }
 
-report("1: Skill validation (47 skills, SKILL.md, frontmatter, references)", skillValidationErrors.length === 0, skillValidationErrors);
+report(`1: Skill validation (${skillDirs.length} skills, SKILL.md, frontmatter, references)`, skillValidationErrors.length === 0, skillValidationErrors);
 
 // -------------------------------------------------------------
 // Check 2: Skill size bounds (New <=80, Split <=120, Unsplit <=150)
@@ -98,7 +98,8 @@ const newSkills = [
   "api-design-principles",
   "frontend-ui-engineering",
   "verification-before-completion",
-  "swarm_monitor"
+  "swarm_monitor",
+  "audit-reporting"
 ];
 
 let sizeErrors = [];
@@ -486,6 +487,13 @@ else
 fi
 
 echo "[PASS] Check 8: Installer dry-run verification complete."
+
+# -------------------------------------------------------------
+# Check 9: Audit report verifier test suite (verify-report.sh)
+# -------------------------------------------------------------
+echo "[CHECK] Check 9: Audit report verifier test suite (verify-report.sh)..."
+node "${REPO_ROOT}/scripts/verify-report.test.cjs"
+echo "[PASS] Check 9: Audit report verifier test suite passed."
 
 echo "============================================================"
 echo "      ALL SMOKE TEST SUITE CHECKS PASSED (EXIT CODE 0)"
