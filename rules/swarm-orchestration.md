@@ -64,9 +64,9 @@ Risk tiers govern reviewer depth and time budgets, stored by Dispatcher in `.swa
 ---
 
 ## 8. State Management, File Locks & Stall Recovery
-- **Runtime State (`.swarm/`):** Ephemeral state (`.swarm/state.json`), deferred findings (`.swarm/followups.md`), and telemetry (`.swarm/metrics.jsonl`) are ignored by Git. See [Runtime State & Stall Runbook](references/runtime-state.md).
-- **Single Active Writer:** Exactly one active writer per file at any moment. Critics and QA hold read-only leases.
-- **Stall Detection:** `@monitor` pings inactive agents at 3 minutes and reports stalls to `@dispatcher` at 5 minutes for safe lease revocation and reassignment.
+- **Runtime State (`.swarm/`):** Managed deterministically via `node scripts/swarm-cli.cjs` (`init`, `lock`, `log-metric`, `check-stalls`, `status`); never hand-edit `.swarm/state.json` or `.swarm/metrics.jsonl`. See [Runtime State & Stall Runbook](references/runtime-state.md).
+- **Single Active Writer:** Exactly one active writer per file at any moment enforced via `swarm-cli.cjs lock acquire`. Critics and QA hold read-only access.
+- **Stall Detection:** `@dispatcher` runs `node scripts/swarm-cli.cjs check-stalls`; when it exits with code `2`, invoke `@monitor` on demand for targeted ping (3m) and escalation (5m).
 - **Project Memory:** Synchronized via local `.swarm/project-context.md` from `config/project-context.template.md` with verified Git commit hash (`git rev-parse HEAD`). Zero secret exposure.
 
 ---

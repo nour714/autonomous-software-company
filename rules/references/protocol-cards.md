@@ -5,7 +5,7 @@ Detailed card templates, review thresholds, and handoff standards for multi-agen
 ---
 
 ## 1. Mandatory Task Card Template
-Dispatched by `@dispatcher` onto the message board and recorded in `.swarm/state.json`:
+Before posting a task card, `@dispatcher` MUST initialize `.swarm/` (`node scripts/swarm-cli.cjs init`) and acquire an atomic file lease (`node scripts/swarm-cli.cjs lock acquire --task TASK-[NUMBER] --owner <agent> --files <file1,file2,...> --mode <mode> --tier <tier>`). Never hand-edit `.swarm/state.json`:
 
 ```markdown
 ┌────────────────────────────────────────────────────────────┐
@@ -29,7 +29,7 @@ Dispatched by `@dispatcher` onto the message board and recorded in `.swarm/state
 ---
 
 ## 2. Standard Handoff Card Template
-Emitted by authors when handing off completed modules for review or integration:
+Before emitting a handoff card, workers MUST log turn telemetry via `node scripts/swarm-cli.cjs log-metric --type agent_run ...`, and `@dispatcher` releases completed leases via `node scripts/swarm-cli.cjs lock release` (and logs `--type task_summary`). Never hand-edit `.swarm/metrics.jsonl`:
 
 ```markdown
 ┌────────────────────────────────────────────────────────────┐

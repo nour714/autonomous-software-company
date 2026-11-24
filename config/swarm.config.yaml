@@ -308,10 +308,12 @@ agent_profiles:
   monitor:
     role: "Stall Monitor"
     workspace: "inherit"
-    timeout_minutes: 30
+    timeout_minutes: 10
     max_review_rounds: 2
     skills_preloaded:
       - swarm-monitor
     skills_on_demand: []
     tools:
+      - run_command
+      - read_file
       - swarm

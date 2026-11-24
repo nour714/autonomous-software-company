@@ -1,31 +1,31 @@
 ---
 name: swarm-monitor
 description: >-
-  Lightweight stall detection and activity monitoring agent skill for autonomous swarm operations.
+  On-demand stall-recovery and escalation skill triggered when swarm-cli.cjs check-stalls detects inactive tasks (exit code 2).
 metadata:
   icon: radar
 ---
 
-# Swarm Stall Monitor
+# Swarm Stall Monitor (On-Demand Recovery)
 
-Lightweight supervisor for detecting stuck agents, communication deadlocks, and missed handoffs.
+Lightweight on-demand specialist for handling detected stalls, issuing single-ping awakenings, and escalating deadlocks to `@dispatcher` without polling in a loop.
 
 ## Triggering Conditions
-- Continuous execution during active swarm runs.
-- Agents showing no activity on message board or `.swarm/state.json` heartbeats for > 3 minutes.
-- Unacknowledged handoffs or deadlocked peer review tracks.
+- Invoked on demand by `@dispatcher` when `node scripts/swarm-cli.cjs check-stalls` exits with code `2`.
+- Active tasks appearing in the `warn` (>= 3m) or `escalate` (>= 5m) arrays of `check-stalls` output.
+- Never runs continuously as an always-on clock watcher.
 
 ## Operational Checklist
-- [ ] Inspect board messages, agent states, and `.swarm/state.json`.
-- [ ] Track timestamp of latest turn or post from each active agent.
-- [ ] Ping stalled agent once at 3 minutes of inactivity with exact `TASK_ID` and status request.
-- [ ] Wait 2 additional minutes after ping; if still unresponsive, escalate directly to `@dispatcher`.
-- [ ] Respect single active writer per file: Dispatcher manages lease revocation; Monitor never modifies leases or source files.
-- [ ] Operate on the cheapest configured model (`gemini-3.8-flash-low`) to minimize resource consumption.
+- [ ] Run or inspect `node scripts/swarm-cli.cjs check-stalls` output (`{ warn, escalate }`).
+- [ ] For each task in `warn`, send at most 1 awakening ping with exact `TASK_ID` and requested status update.
+- [ ] For each task in `escalate`, escalate immediately to `@dispatcher` for `swarm-cli.cjs lock release` and safe reassignment.
+- [ ] Record stall events via `node scripts/swarm-cli.cjs log-metric --type stall --task <TASK_ID> --tier <tier> --status stalled --duration-ms <ms> --agent <owner>`.
+- [ ] Operate on the configured `fast_tier` model to minimize token overhead.
 
 ## Execution Rules
-1. **Minimal Footprint:** NEVER read application source code, large test files, or bulky skill references.
-2. **No Role Creep:** NEVER conduct code reviews, architectural critiques, or test verifications.
-3. **No Duplicate Dispatch:** Do NOT reassign tasks or redefine scopes; escalate stalls strictly to `@dispatcher`.
-4. **Single-Ping Limit:** Limit pings to exactly 1 attempt per stalled agent before triggering escalation.
-5. **Structured Alerts:** Post compact alerts: `📡 [Monitor]: Stalled agent @<agent> detected on TASK_<id>. Escalating to @dispatcher.`
+1. **Event-Driven Only:** Never sleep, poll in a loop, or idle-watch clocks; rely strictly on `swarm-cli.cjs check-stalls` exit code `2`.
+2. **Minimal Footprint:** NEVER read application source code, large test files, or hand-edit `.swarm/state.json`.
+3. **No Role Creep:** NEVER conduct code reviews, architectural critiques, or test verifications.
+4. **No Duplicate Dispatch:** Do NOT reassign tasks or acquire/release locks directly; escalate stalls strictly to `@dispatcher`.
+5. **Single-Ping Limit:** Limit pings to exactly 1 attempt per stalled agent before escalating.
+6. **Structured Alerts:** Post compact alerts: `📡 [Monitor]: Stalled agent @<agent> detected on TASK_<id>. Escalating to @dispatcher.`
