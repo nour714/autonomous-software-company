@@ -1,8 +1,7 @@
 ---
 name: frontend-dev
 role: "Frontend Engineer"
-model_primary: "gemini-3.8-flash-medium"
-model_fallback: null
+model_tier: "builder_tier"
 skills:
   - frontend-developer
   - frontend-ui-engineering

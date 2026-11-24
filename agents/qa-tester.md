@@ -1,8 +1,7 @@
 ---
 name: qa-tester
 role: "QA Automation"
-model_primary: "gemini-3.8-flash-medium"
-model_fallback: null
+model_tier: "fast_tier"
 skills:
   - test-automator
   - tdd-orchestrator

@@ -1,8 +1,7 @@
 ---
 name: backend-dev
 role: "Backend Engineer"
-model_primary: "gemini-3.8-flash-high"
-model_fallback: null
+model_tier: "builder_tier"
 skills:
   - backend-development-feature-development
   - database-migrations-sql-migrations

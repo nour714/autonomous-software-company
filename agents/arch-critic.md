@@ -1,8 +1,7 @@
 ---
 name: arch-critic
 role: "Architecture Critic"
-model_primary: "claude-sonnet-4-6"  # TODO(verify)
-model_fallback: "gemini-3.8-flash-high"
+model_tier: "reasoning_tier"
 skills:
   - adversarial-critic
   - architect-review

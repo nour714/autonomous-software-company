@@ -1,8 +1,7 @@
 ---
 name: frontend-critic
 role: "Frontend Critic"
-model_primary: "gemini-3.8-flash-high"
-model_fallback: null
+model_tier: "builder_tier"
 skills:
   - better-interface
   - ui-visual-validator

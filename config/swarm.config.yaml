@@ -5,7 +5,7 @@ execution:
   max_review_rounds: 2
   max_files_per_task: 5
   target_task_unit_minutes: 15
-  parallel_execution_tracks:  # TODO(verify) runtime parallel track support
+  parallel_execution_tracks:
     - backend-dev
     - frontend-dev
     - qa-tester
@@ -56,30 +56,76 @@ risk_tiers:
     time_budget_minutes: 25
     critic_required: true
 
-thinking_budgets:  # TODO(verify) runtime CLI/API integration
+thinking_budgets:
   default: low
   architecture_design: medium
   tier_2_critics: high
 
 models:
-  policy: "On the first verified quota, rate-limit, or model execution error, switch directly to model_fallback without an endless retry loop; if null or unavailable, report task as BLOCKED."
+  policy: "On the first verified quota, rate-limit, or model execution error, switch directly to model_fallback without an endless retry loop; if unavailable, report task as BLOCKED."
+  tiers:
+    reasoning_tier:
+      description: "Complex architecture, deep security critique, and structural decisions"
+    builder_tier:
+      description: "Code implementation, refactoring, and UI/API reviews"
+    fast_tier:
+      description: "Testing harnesses, release verification, and stall monitoring"
   agents:
-    dispatcher: "gemini-3.8-flash-high"
-    architect: "gemini-3.8-flash-high"
-    arch-critic: "claude-sonnet-4-6"  # TODO(verify) provider model ID format
-    backend-dev: "gemini-3.8-flash-high"
-    backend-critic: "claude-opus-4-6-thinking"  # TODO(verify) provider model ID format
-    frontend-dev: "gemini-3.8-flash-medium"
-    frontend-critic: "gemini-3.8-flash-high"
-    qa-tester: "gemini-3.8-flash-medium"
-    release-gatekeeper: "gemini-3.8-flash-medium"
-    monitor: "gemini-3.8-flash-low"
+    dispatcher: "builder_tier"
+    architect: "reasoning_tier"
+    arch-critic: "reasoning_tier"
+    backend-dev: "builder_tier"
+    backend-critic: "reasoning_tier"
+    frontend-dev: "builder_tier"
+    frontend-critic: "builder_tier"
+    qa-tester: "fast_tier"
+    release-gatekeeper: "fast_tier"
+    monitor: "fast_tier"
   fallback_map:
-    claude-sonnet-4-6: "gemini-3.8-flash-high"  # TODO(verify)
-    claude-opus-4-6-thinking: "gemini-3.8-flash-high"  # TODO(verify)
-    gemini-3.8-flash-high: null
-    gemini-3.8-flash-medium: null
-    gemini-3.8-flash-low: null
+    reasoning_tier: "builder_tier"
+    builder_tier: "fast_tier"
+    fast_tier: "builder_tier"
+  provider_adapters:
+    antigravity:
+      reasoning_tier:
+        primary: "gemini-3.8-flash-high"
+        fallback: "gemini-3.8-flash-medium"
+      builder_tier:
+        primary: "gemini-3.8-flash-medium"
+        fallback: "gemini-3.8-flash-low"
+      fast_tier:
+        primary: "gemini-3.8-flash-low"
+        fallback: "gemini-3.8-flash-medium"
+    claude-code:
+      reasoning_tier:
+        primary: "claude-opus-4-6-thinking"
+        fallback: "claude-sonnet-4-6"
+      builder_tier:
+        primary: "claude-sonnet-4-6"
+        fallback: "claude-haiku-4-6"
+      fast_tier:
+        primary: "claude-haiku-4-6"
+        fallback: "claude-sonnet-4-6"
+    cursor:
+      reasoning_tier:
+        primary: "cursor-fast-reasoning"
+        fallback: "cursor-standard"
+      builder_tier:
+        primary: "cursor-standard"
+        fallback: "cursor-fast"
+      fast_tier:
+        primary: "cursor-fast"
+        fallback: "cursor-standard"
+    gemini-cli:
+      reasoning_tier:
+        primary: "gemini-2.5-pro"
+        fallback: "gemini-2.5-flash"
+      builder_tier:
+        primary: "gemini-2.5-flash"
+        fallback: "gemini-2.5-flash-lite"
+      fast_tier:
+        primary: "gemini-2.5-flash-lite"
+        fallback: "gemini-2.5-flash"
   excluded_models:
     - "gpt-oss-120b-medium"
 

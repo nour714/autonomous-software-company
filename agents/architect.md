@@ -1,8 +1,7 @@
 ---
 name: architect
 role: "Lead Architect"
-model_primary: "gemini-3.8-flash-high"
-model_fallback: null
+model_tier: "reasoning_tier"
 skills:
   - backend-architect
   - architecture-patterns

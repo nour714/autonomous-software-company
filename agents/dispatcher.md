@@ -1,8 +1,7 @@
 ---
 name: dispatcher
 role: "Task Dispatcher"
-model_primary: "gemini-3.8-flash-high"
-model_fallback: null
+model_tier: "builder_tier"
 skills:
   - task-dispatching
   - workflow-orchestration-patterns

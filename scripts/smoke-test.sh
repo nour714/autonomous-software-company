@@ -195,7 +195,7 @@ for (const agentName of expectedAgents) {
     }
   }
 
-  const reqFields = ["name", "role", "model_primary", "model_fallback", "skills", "tools", "workspace", "timeout_minutes", "max_review_rounds"];
+  const reqFields = ["name", "role", "model_tier", "skills", "tools", "workspace", "timeout_minutes", "max_review_rounds"];
   for (const rf of reqFields) {
     if (fields[rf] === undefined || fields[rf] === null) {
       agentErrors.push(`Missing required field "${rf}" in agents/${agentName}.md`);
@@ -228,11 +228,28 @@ for (const [agentName, agentData] of parsedAgents.entries()) {
   if (!match) {
     agentErrors.push(`Agent "${agentName}" not found in config/swarm.config.yaml models.agents`);
   } else {
-    const cfgPrimary = match[1].trim().replace(/^["\x27]|["\x27]$/g, "");
-    if (cfgPrimary !== agentData.model_primary) {
-      agentErrors.push(`model_primary mismatch for "${agentName}": config has "${cfgPrimary}", agent has "${agentData.model_primary}"`);
+    const cfgTier = match[1].trim().replace(/^["\x27]|["\x27]$/g, "");
+    if (cfgTier !== agentData.model_tier) {
+      agentErrors.push(`model_tier mismatch for "${agentName}": config has "${cfgTier}", agent has "${agentData.model_tier}"`);
     }
   }
+}
+
+// Validate fallback_map has zero nulls and no TODO(verify)
+const fallbackMatch = configContent.match(/fallback_map:([\s\S]*?)(?:\n\s*[a-zA-Z0-9_-]+:|$)/);
+if (fallbackMatch) {
+  const fbLines = fallbackMatch[1].split(/\r?\n/).filter(l => l.includes(":"));
+  for (const line of fbLines) {
+    if (line.includes("null") || line.match(/:\s*null\b/)) {
+      agentErrors.push(`fallback_map contains null entry: "${line.trim()}"`);
+    }
+  }
+} else {
+  agentErrors.push("fallback_map missing in config/swarm.config.yaml");
+}
+
+if (configContent.includes("TODO(verify)")) {
+  agentErrors.push("config/swarm.config.yaml contains unresolved TODO(verify)");
 }
 
 report("3: Agent & Roster validation (10 agents, briefs <=40 lines, max 3 skills)", agentErrors.length === 0, agentErrors);

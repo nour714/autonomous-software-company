@@ -1,8 +1,7 @@
 ---
 name: backend-critic
 role: "Backend Critic"
-model_primary: "claude-opus-4-6-thinking"  # TODO(verify)
-model_fallback: "gemini-3.8-flash-high"
+model_tier: "reasoning_tier"
 skills:
   - adversarial-critic
   - security-audit

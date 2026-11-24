@@ -1,8 +1,7 @@
 ---
 name: monitor
 role: "Stall Monitor"
-model_primary: "gemini-3.8-flash-low"
-model_fallback: null
+model_tier: "fast_tier"
 skills:
   - swarm_monitor
 tools:

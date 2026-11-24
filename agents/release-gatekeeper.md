@@ -1,8 +1,7 @@
 ---
 name: release-gatekeeper
 role: "Release Gatekeeper"
-model_primary: "gemini-3.8-flash-medium"
-model_fallback: null
+model_tier: "fast_tier"
 skills:
   - verification-before-completion
   - deployment-engineer
