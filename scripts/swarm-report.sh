@@ -28,6 +28,7 @@ try {
   let skippedCount = 0;
   let taskSummaries = [];
   let agentRuns = [];
+  let stallEvents = [];
 
   for (const line of lines) {
     try {
@@ -36,6 +37,8 @@ try {
         taskSummaries.push(record);
       } else if (record && record.record_type === "agent_run") {
         agentRuns.push(record);
+      } else if (record && record.record_type === "stall") {
+        stallEvents.push(record);
       } else {
         skippedCount++;
       }
@@ -48,7 +51,7 @@ try {
   console.log("         SWARM PERFORMANCE BENCHMARK REPORT");
   console.log("============================================================");
   console.log(`Target Metrics File: ${filePath}`);
-  console.log(`Total Records Processed: ${taskSummaries.length + agentRuns.length}`);
+  console.log(`Total Records Processed: ${taskSummaries.length + agentRuns.length + stallEvents.length}`);
   if (skippedCount > 0) {
     console.log(`Skipped Invalid / Unrecognized Lines: ${skippedCount}`);
   }
@@ -151,7 +154,7 @@ try {
   }
   console.log(`Fallback Model Activations: ${fallbackCount}`);
 
-  // 6. Stall Events (computed from BOTH agent_run and task_summary records)
+  // 6. Stall Events (computed from task_summary, agent_run, and stall records)
   let stallCount = 0;
   for (const t of taskSummaries) {
     if (Number(t.stall_count) > 0) {
@@ -166,6 +169,9 @@ try {
     } else if (r.stalled === true || r.stall_detected === true) {
       stallCount++;
     }
+  }
+  for (const s of stallEvents) {
+    stallCount += Number(s.stall_count) > 0 ? Number(s.stall_count) : 1;
   }
   console.log(`Stall Detections / Pings: ${stallCount}`);
 
