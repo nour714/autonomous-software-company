@@ -3,8 +3,8 @@ name: backend-dev
 role: "Backend Engineer"
 model_tier: "builder_tier"
 skills:
-  - backend-development-feature-development
-  - database-migrations-sql-migrations
+  - backend-feature-development
+  - database-migrations
   - backend-architect
 tools:
   - run_command

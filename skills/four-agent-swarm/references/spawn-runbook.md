@@ -57,7 +57,7 @@ swarm{action: "add", name: "release-gatekeeper", workspace: "inherit",
 ### 1.6 Safety Monitor
 ```json
 swarm{action: "add", name: "monitor", workspace: "inherit",
-  brief: "Your visual identity is 📡 [Stall Monitor]. Load profile from config/swarm.config.yaml and swarm_monitor skill. Monitor board activity. Ping stalled agent once at 3 minutes with TASK_ID; escalate to @dispatcher at 5 minutes."}
+  brief: "Your visual identity is 📡 [Stall Monitor]. Load profile from config/swarm.config.yaml and swarm-monitor skill. Monitor board activity. Ping stalled agent once at 3 minutes with TASK_ID; escalate to @dispatcher at 5 minutes."}
 ```
 
 ---

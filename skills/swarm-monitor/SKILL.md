@@ -1,5 +1,5 @@
 ---
-name: swarm_monitor
+name: swarm-monitor
 description: >-
   Lightweight stall detection and activity monitoring agent skill for autonomous swarm operations.
 metadata:

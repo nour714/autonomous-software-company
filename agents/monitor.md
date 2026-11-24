@@ -3,7 +3,7 @@ name: monitor
 role: "Stall Monitor"
 model_tier: "fast_tier"
 skills:
-  - swarm_monitor
+  - swarm-monitor
 tools:
   - swarm
 workspace: inherit

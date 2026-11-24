@@ -1,6 +1,6 @@
 ---
 
-name: backend-development-feature-development
+name: backend-feature-development
 
 description: "Orchestrate end-to-end backend feature development from requirements to deployment. Use when coordinating multi-phase feature delivery across teams and services."
 

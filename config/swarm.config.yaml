@@ -158,7 +158,7 @@ agent_profiles:
       - architecture-patterns
       - api-design-principles
     skills_on_demand:
-      - c4-architecture-c4-architecture
+      - c4-architecture
       - architecture-decision-records
     tools:
       - read_file
@@ -190,8 +190,8 @@ agent_profiles:
     timeout_minutes: 20
     max_review_rounds: 2
     skills_preloaded:
-      - backend-development-feature-development
-      - database-migrations-sql-migrations
+      - backend-feature-development
+      - database-migrations
       - backend-architect
     skills_on_demand:
       - sql-optimization-patterns
@@ -305,7 +305,7 @@ agent_profiles:
     timeout_minutes: 30
     max_review_rounds: 2
     skills_preloaded:
-      - swarm_monitor
+      - swarm-monitor
     skills_on_demand: []
     tools:
       - swarm

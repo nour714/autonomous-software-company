@@ -11,6 +11,8 @@ metadata:
 
 # Autonomous Engineering Swarm Orchestrator (10-Agent Adaptive Squad)
 
+> **Unified Entrypoint:** `skills/four-agent-swarm` is the canonical, backward-compatible entry alias for the complete 10-agent adaptive swarm (supporting Arabic triggers, `"swarm team"`, and `"/swarm"`).
+
 Coordinates an enterprise-grade autonomous software engineering system composed of 10 specialized agents organized into **4 Builder-Critic tracks**, **1 Task Dispatcher**, and **1 Stall Monitor**. Models, numerical thresholds, risk policies, and fallbacks are centrally governed by `config/swarm.config.yaml`.
 
 ## 1. Squad Visual Identity & Track Roster

@@ -98,7 +98,7 @@ const newSkills = [
   "api-design-principles",
   "frontend-ui-engineering",
   "verification-before-completion",
-  "swarm_monitor",
+  "swarm-monitor",
   "audit-reporting"
 ];
 

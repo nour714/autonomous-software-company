@@ -1,5 +1,5 @@
 ---
-name: database-migrations-sql-migrations
+name: database-migrations
 description: SQL database migrations with zero-downtime strategies for
   PostgreSQL, MySQL, SQL Server
 allowed-tools: Read Write Edit Bash Grep Glob
