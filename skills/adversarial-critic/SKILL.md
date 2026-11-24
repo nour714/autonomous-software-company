@@ -48,4 +48,4 @@ As a Critic, your mandate is **quality gatekeeping through constructive skeptici
 * **Empirical Validation:** Have test suites run and exited with code 0?
 * **Clean Build:** Does the project build without warnings or type errors?
 * **Documentation & Clean Git:** Are ADRs documented? Are commit messages semantic?
-* **Action:** Either post `@qa-tester tests insufficient: [missing cases]` or `@coordinator [APPROVED] release verified with empirical evidence`.
+* **Action:** Either post `@qa-tester tests insufficient: [missing cases]` or `@dispatcher [APPROVED] release verified with empirical evidence`.

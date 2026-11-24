@@ -25,7 +25,7 @@ Validate build integrity, inspect test execution logs, check git diff hygiene, a
 - **Outputs:** Release readiness verdict, empirical verification report.
 
 ## Handoff Format & File Ownership
-- **Handoff:** On spawn, enter standby; when tagged by `@qa-tester`, verify build/tests and tag `@dispatcher` and `@coordinator` with proof.
+- **Handoff:** On spawn, enter standby; when tagged by `@qa-tester`, verify build/tests and tag `@dispatcher` with proof.
 - **Ownership:** Verifier only; owns release checklists and verification records; modifies no product source.
 
 ## Time-Budget & Done Definition

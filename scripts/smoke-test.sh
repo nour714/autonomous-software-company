@@ -252,6 +252,40 @@ if (configContent.includes("TODO(verify)")) {
   agentErrors.push("config/swarm.config.yaml contains unresolved TODO(verify)");
 }
 
+// Validate @<agent-name> mentions in agents/*.md and rules/*.md
+const validAgentSet = new Set(expectedAgents);
+const placeholderMentions = new Set(["agent-name", "agent1", "agent2", "critic-name", "author-name", "next-stage"]);
+
+const filesToCheckMentions = [];
+for (const ag of expectedAgents) {
+  filesToCheckMentions.push(path.join(agentsDir, `${ag}.md`));
+}
+const checkRulesDir = path.join(repoRoot, "rules");
+if (fs.existsSync(checkRulesDir)) {
+  for (const rf of fs.readdirSync(checkRulesDir)) {
+    const fullP = path.join(checkRulesDir, rf);
+    if (rf.endsWith(".md")) {
+      filesToCheckMentions.push(fullP);
+    } else if (fs.statSync(fullP).isDirectory()) {
+      for (const subF of fs.readdirSync(fullP)) {
+        if (subF.endsWith(".md")) filesToCheckMentions.push(path.join(fullP, subF));
+      }
+    }
+  }
+}
+
+for (const f of filesToCheckMentions) {
+  if (!fs.existsSync(f)) continue;
+  const content = fs.readFileSync(f, "utf8");
+  const mentions = content.matchAll(/@([a-zA-Z0-9_-]+)/g);
+  for (const m of mentions) {
+    const mention = m[1];
+    if (!validAgentSet.has(mention) && !placeholderMentions.has(mention)) {
+      agentErrors.push(`Invalid agent mention "@${mention}" in ${path.relative(repoRoot, f)}`);
+    }
+  }
+}
+
 report("3: Agent & Roster validation (10 agents, briefs <=40 lines, max 3 skills)", agentErrors.length === 0, agentErrors);
 
 // -------------------------------------------------------------

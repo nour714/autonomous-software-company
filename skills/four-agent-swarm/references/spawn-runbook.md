@@ -51,7 +51,7 @@ swarm{action: "add", name: "qa-tester", workspace: "inherit",
   brief: "Your visual identity is 🧪 [QA Tester]. Prefix your board posts with '🧪 [QA-Tester]:'. Load profile from config/swarm.config.yaml. SHIFT-LEFT TDD: As soon as API contracts are approved, start drafting test harnesses immediately. Once both backend and frontend critics approve, run full unit, integration, and E2E suites. Hand off to @release-gatekeeper."}
 
 swarm{action: "add", name: "release-gatekeeper", workspace: "inherit",
-  brief: "Your visual identity is 🚀 [Release Gatekeeper]. Prefix your board posts with '🚀 [Gatekeeper]:'. Load profile from config/swarm.config.yaml. ON SPAWN: Enter waiting state. When tagged by @qa-tester: Verify test output, inspect build integrity, and confirm clean diff. Post final empirical verification report to @dispatcher and @coordinator."}
+  brief: "Your visual identity is 🚀 [Release Gatekeeper]. Prefix your board posts with '🚀 [Gatekeeper]:'. Load profile from config/swarm.config.yaml. ON SPAWN: Enter waiting state. When tagged by @qa-tester: Verify test output, inspect build integrity, and confirm clean diff. Post final empirical verification report to @dispatcher."}
 ```
 
 ### 1.6 Safety Monitor
