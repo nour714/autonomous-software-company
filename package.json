@@ -1,0 +1,15 @@
+{
+  "name": "autonomous-software-company",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hybrid Autonomous Engineering Harness with specialist agents and deterministic CLI runtime",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test:smoke": "bash scripts/smoke-test.sh",
+    "test:report": "node scripts/verify-report.test.cjs",
+    "test": "npm run test:smoke && npm run test:report"
+  }
+}
