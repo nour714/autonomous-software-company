@@ -159,6 +159,7 @@ agent_profiles:
       - api-design-principles
     skills_on_demand:
       - c4-architecture-c4-architecture
+      - architecture-decision-records
     tools:
       - read_file
       - write_file
@@ -178,6 +179,7 @@ agent_profiles:
     skills_on_demand:
       - multi-cloud-architecture
       - audit-reporting
+      - architecture-decision-records
     tools:
       - read_file
       - google-developer-knowledge
@@ -193,6 +195,7 @@ agent_profiles:
       - backend-architect
     skills_on_demand:
       - sql-optimization-patterns
+      - unit-testing-test-generate
     tools:
       - run_command
       - read_file
@@ -268,6 +271,7 @@ agent_profiles:
     skills_on_demand:
       - e2e-testing-patterns
       - audit-reporting
+      - unit-testing-test-generate
     tools:
       - run_command
       - read_file
@@ -289,6 +293,7 @@ agent_profiles:
       - cicd-automation-workflow-automate
       - observability-engineer
       - audit-reporting
+      - github-actions-templates
     tools:
       - run_command
       - read_file

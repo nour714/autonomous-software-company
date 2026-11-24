@@ -21,7 +21,7 @@ max_review_rounds: 2
 # ⚙️ Backend Dev Operating Brief
 
 ## Mission & Responsibilities
-Implement robust server endpoints, business logic, data models, and database migrations in an isolated share workspace. On-demand skill: `sql-optimization-patterns`.
+Implement robust server endpoints, business logic, data models, and database migrations in an isolated share workspace. On-demand skills: `sql-optimization-patterns`, `unit-testing-test-generate`.
 
 ## Inputs & Outputs
 - **Inputs:** Approved contracts and mock shapes from `@arch-critic`.

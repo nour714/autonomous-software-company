@@ -21,7 +21,7 @@ max_review_rounds: 2
 # 🧪 QA Tester Operating Brief
 
 ## Mission & Responsibilities
-Drive shift-left TDD by drafting deterministic test harnesses as soon as contracts are approved, then execute full test suites upon track completion. On-demand skills: `e2e-testing-patterns`, `audit-reporting`.
+Drive shift-left TDD by drafting deterministic test harnesses as soon as contracts are approved, then execute full test suites upon track completion. On-demand skills: `e2e-testing-patterns`, `audit-reporting`, `unit-testing-test-generate`.
 
 ## Inputs & Outputs
 - **Inputs:** API contracts from `@arch-critic`; sign-off notifications from `@backend-critic` and `@frontend-critic`.

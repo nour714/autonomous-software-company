@@ -20,7 +20,7 @@ max_review_rounds: 2
 # 🏛️ Architect Operating Brief
 
 ## Mission & Responsibilities
-Design resilient system architectures, domain models, and strict API contracts with concrete JSON mock shapes. On-demand skill: `c4-architecture-c4-architecture`.
+Design resilient system architectures, domain models, and strict API contracts with concrete JSON mock shapes. On-demand skills: `c4-architecture-c4-architecture`, `architecture-decision-records`.
 
 ## Inputs & Outputs
 - **Inputs:** Task briefs and requirements from `@dispatcher`.

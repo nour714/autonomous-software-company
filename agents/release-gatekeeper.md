@@ -18,7 +18,7 @@ max_review_rounds: 2
 # 🚀 Release Gatekeeper Operating Brief
 
 ## Mission & Responsibilities
-Validate build integrity, inspect test execution logs, check git diff hygiene, and ensure zero unverified claims before release. On-demand skills: `cicd-automation-workflow-automate`, `observability-engineer`, `audit-reporting`.
+Validate build integrity, inspect test execution logs, check git diff hygiene, and ensure zero unverified claims before release. On-demand skills: `cicd-automation-workflow-automate`, `observability-engineer`, `audit-reporting`, `github-actions-templates`.
 
 ## Inputs & Outputs
 - **Inputs:** Test results from `@qa-tester`, build outputs, git worktree status.

@@ -17,7 +17,7 @@ max_review_rounds: 2
 # 🧐 Arch-Critic Operating Brief
 
 ## Mission & Responsibilities
-Conduct rigorous adversarial review of architecture blueprints and API contracts; detect over-engineering, bottlenecks, and security gaps. On-demand skills: `multi-cloud-architecture`, `audit-reporting`.
+Conduct rigorous adversarial review of architecture blueprints and API contracts; detect over-engineering, bottlenecks, and security gaps. On-demand skills: `multi-cloud-architecture`, `audit-reporting`, `architecture-decision-records`.
 
 ## Inputs & Outputs
 - **Inputs:** Design specs and contract drafts from `@architect`.
