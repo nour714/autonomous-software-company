@@ -479,9 +479,19 @@ if (!fs.existsSync(cfgPath)) {
       configErrors.push(`Invalid review rounds: ${rm[0]}`);
     }
   }
+
+  // Orphan Skill Guard: every skill directory (except four-agent-swarm entrypoint) must be referenced in config
+  for (const dir of skillDirs) {
+    if (dir === "four-agent-swarm") continue;
+    const escapedDir = dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const skillRefRegex = new RegExp(`^\\s*-\\s*["\x27]?${escapedDir}["\x27]?\\s*$`, "m");
+    if (!skillRefRegex.test(content)) {
+      configErrors.push(`Orphaned skill detected: skills/${dir} is not referenced in config/swarm.config.yaml`);
+    }
+  }
 }
 
-report("7: Configuration validation (swarm.config.yaml integrity)", configErrors.length === 0, configErrors);
+report("7: Configuration validation (swarm.config.yaml integrity + zero orphan skills)", configErrors.length === 0, configErrors);
 
 if (totalErrors > 0) {
   console.error(`\nValidation failed with ${totalErrors} error(s).`);
@@ -508,10 +518,13 @@ echo "[CHECK] Check 8: Installer dry-run verification..."
 
 echo "  Testing ./install.sh --dry-run..."
 DRY_RUN_OUTPUT="$("${REPO_ROOT}/install.sh" --dry-run)"
-if echo "${DRY_RUN_OUTPUT}" | grep -q "Status: Dry-run completed successfully"; then
-  echo "  [PASS] ./install.sh --dry-run succeeded."
+if echo "${DRY_RUN_OUTPUT}" | grep -q "Status: Dry-run completed successfully" && \
+   echo "${DRY_RUN_OUTPUT}" | grep -q "rules/references" && \
+   echo "${DRY_RUN_OUTPUT}" | grep -q "config" && \
+   echo "${DRY_RUN_OUTPUT}" | grep -q "scripts"; then
+  echo "  [PASS] ./install.sh --dry-run succeeded with rules/references, config, and scripts parity."
 else
-  echo "  [FAIL] ./install.sh --dry-run unexpected output: ${DRY_RUN_OUTPUT}"
+  echo "  [FAIL] ./install.sh --dry-run missing expected parity output: ${DRY_RUN_OUTPUT}"
   exit 1
 fi
 

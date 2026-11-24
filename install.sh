@@ -87,7 +87,7 @@ if [ "$DRY_RUN" = true ]; then
   echo "------------------------------------------------------------"
   echo "Planned Operations:"
   echo "  - Skills to install:  $SKILLS_COUNT directories"
-  echo "  - Rules to install:   $RULES_COUNT files (including references)"
+  echo "  - Rules to install:   $RULES_COUNT files (rules/*.md and rules/references/*)"
   echo "  - Agents to install:  $AGENTS_COUNT markdown files"
   echo "  - Config to install:  $CONFIG_COUNT configuration files"
   echo "  - Scripts to install: $SCRIPTS_COUNT script files"

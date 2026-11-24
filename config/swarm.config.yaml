@@ -16,20 +16,26 @@ execution:
 
 execution_modes:
   quick:
-    description: "Fast-track execution for localized changes (<= 2 files) bypassing full architecture cycles."
+    description: "Fast-track execution for localized changes (<= 2 files, tier_0) bypassing full architecture cycles."
     typical_active_agents:
       - dispatcher
-      - backend-dev
-    routing_rules: "Dispatcher + one relevant developer (backend-dev or frontend-dev); lightweight critic added only when tier_1; qa-tester only if test-heavy; no architect unless required."
+      - "<relevant-dev>"  # backend-dev OR frontend-dev based on task scope
+    routing_rules: "Dispatcher + <relevant-dev> (backend-dev OR frontend-dev based on task scope); lightweight critic added only if escalated to tier_1; qa-tester only if test-heavy; no architect unless required."
   standard:
-    description: "Default full-pipeline engineering workflow with shift-left TDD and parallel development."
+    description: "Default full-pipeline engineering workflow (tier_1, critic_required: true) with shift-left TDD, parallel development, and dynamic critic review."
     typical_active_agents:
       - dispatcher
       - backend-dev
       - frontend-dev
+      - dynamic_critic
       - qa-tester
       - release-gatekeeper
-    routing_rules: "Dispatcher + only specialists needed for the task (4-5 typical); full architecture sign-off preceding parallel backend/frontend tracks; max 2 review rounds before gatekeeper."
+    dynamic_critic:
+      selection_rule: "Select backend-critic or frontend-critic based on changed file paths (5-6 active agents, avoiding full 10-agent enterprise overhead)."
+      candidates:
+        - backend-critic
+        - frontend-critic
+    routing_rules: "Dispatcher + specialists needed for task (5-6 typical, including 1 dynamic_critic for tier_1); architecture sign-off when required preceding parallel tracks; max 2 review rounds before gatekeeper."
   enterprise:
     description: "High-assurance audit workflow with deep security scanning, accessibility verification, and ADR generation."
     typical_active_agents:

@@ -33,8 +33,8 @@ The autonomous engineering team operates as a **10-agent squad (4 Builder-Critic
 
 ## 4. Adaptive Execution Modes
 The Dispatcher evaluates 8 factors (complexity, affected modules, security impact, DB impact, FE/BE involvement, architectural novelty, required verification, estimated time) and selects the smallest safe mode:
-- **Quick Mode (2–3 agents):** Localized fixes, minor UI/CSS tweaks, documentation. `Dispatcher -> Relevant Dev -> Self-Verification` (+ lightweight Critic if Tier 1, or QA if test-heavy; no Architect unless structural design is needed).
-- **Standard Mode (4–5 agents):** Regular features, database-backed endpoints, moderate refactoring. `Dispatcher -> Architecture -> Parallel Devs -> Relevant Critic(s) -> QA -> Release Gatekeeper`.
+- **Quick Mode (2–3 agents, `tier_0` default):** Localized fixes (`<= 2` files), minor UI/CSS tweaks, documentation. `Dispatcher -> <relevant-dev> (backend-dev | frontend-dev) -> Self-Verification` (+ lightweight Critic if escalated to Tier 1, or QA if test-heavy; no Architect unless structural design is needed).
+- **Standard Mode (5–6 agents, `tier_1` default):** Regular features, database-backed endpoints, moderate refactoring. `Dispatcher -> Architecture (when needed) -> Parallel Devs -> dynamic_critic (backend-critic | frontend-critic by changed paths) -> QA -> Release Gatekeeper`.
 - **Enterprise Mode (10 agents):** Platform-wide features, new architectures, critical authentication or database migrations. Full squad engagement.
 
 **Critical Principle:** *Execution Mode and Risk Tier are independent decisions.* Never downgrade Risk Tier because implementation size is small.

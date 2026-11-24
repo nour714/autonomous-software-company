@@ -74,7 +74,7 @@ if ($DryRun) {
     Write-Host "------------------------------------------------------------"
     Write-Host "Planned Operations:"
     Write-Host "  - Skills to install:  $skillsCount directories"
-    Write-Host "  - Rules to install:   $rulesCount files (including references)"
+    Write-Host "  - Rules to install:   $rulesCount files (rules/*.md and rules/references/*)"
     Write-Host "  - Agents to install:  $agentsCount markdown files"
     Write-Host "  - Config to install:  $configCount configuration files"
     Write-Host "  - Scripts to install: $scriptsCount script files"
