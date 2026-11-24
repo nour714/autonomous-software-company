@@ -10,6 +10,7 @@
   "scripts": {
     "test:smoke": "bash scripts/smoke-test.sh",
     "test:report": "node scripts/verify-report.test.cjs",
-    "test": "npm run test:smoke && npm run test:report"
+    "test:cli": "node --test scripts/swarm-cli.test.cjs",
+    "test": "npm run test:smoke && npm run test:report && npm run test:cli"
   }
 }
