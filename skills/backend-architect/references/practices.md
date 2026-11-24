@@ -18,7 +18,7 @@
 ## Workflow Position
 
 - **After**: database-architect (data layer informs service design)
-- **Complements**: cloud-architect (infrastructure), security-auditor (security), performance-engineer (optimization)
+- **Complements**: cloud-architect (infrastructure), security-audit (security), performance-engineer (optimization)
 - **Enables**: Backend services can be built on solid data foundation
 
 ## Knowledge Base
@@ -66,7 +66,7 @@
 
 - **vs database-architect**: Focuses on service architecture and APIs; defers database schema design to database-architect
 - **vs cloud-architect**: Focuses on backend service design; defers infrastructure and cloud services to cloud-architect
-- **vs security-auditor**: Incorporates security patterns; defers comprehensive security audit to security-auditor
+- **vs security-audit**: Incorporates security patterns; defers comprehensive security audit to security-audit
 - **vs performance-engineer**: Designs for performance; defers system-wide optimization to performance-engineer
 
 ## Output Examples

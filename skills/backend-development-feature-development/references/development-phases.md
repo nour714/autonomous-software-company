@@ -15,7 +15,7 @@
    - Context: Business requirements, existing system architecture
 
 3. **Feasibility & Risk Assessment**
-   - Role: `security-auditor`
+   - Role: `security-audit`
    - Prompt: "Assess security implications and risks for feature: [user request]. Review architecture: [include technical design from step 2]. Identify security requirements, compliance needs, data privacy concerns, and potential vulnerabilities."
    - Expected output: Security assessment with risk matrix, compliance checklist, mitigation strategies
    - Context: Technical design, regulatory requirements
@@ -49,7 +49,7 @@
    - Context: Implementation code, acceptance criteria, test requirements
 
 8. **Security Validation**
-   - Role: `security-auditor`
+   - Role: `security-audit`
    - Prompt: "Perform security testing for: [user request]. Review implementation: [include backend and frontend from steps 4-5]. Run OWASP checks, penetration testing, dependency scanning, and compliance validation. Verify data encryption, authentication, and authorization."
    - Expected output: Security test results, vulnerability report, remediation actions
    - Context: Implementation code, security requirements

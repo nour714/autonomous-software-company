@@ -93,11 +93,12 @@ For each confirmed finding, identify the invariant the code must enforce and the
 ## Reference Documentation Index
 
 Load these specialized references on-demand only when the task requires in-depth details:
-
-- [Audit Setup & Planning Guide](references/setup-and-planning.md) — Runner configuration, write isolation, scope definitions, and coverage ledgers.
-
-- [Audit Workflow & Anti-Patterns](references/workflow-and-antipatterns.md) — Execution stages, triage process, and non-blocking vulnerability handoffs.
-
+- [Audit Setup & Planning Guide](references/setup-and-planning.md) — Runner configuration, write isolation, scope, and coverage ledgers.
+- [Audit Workflow & Anti-Patterns](references/workflow-and-antipatterns.md) — Execution stages, DevSecOps checklist, and triage anti-patterns.
+- [SAST Tools & Patterns](references/sast.md) — Multi-language static analysis, Semgrep/Bandit/ESLint rules, and CI gates.
+- [Multi-Layer Hardening](references/hardening.md) — Coordinated defense-in-depth workflow across app, infra, and secrets.
+- [Dependency & SBOM Scanning](references/dependencies.md) — Cross-ecosystem CVE scanning, CycloneDX SBOMs, and remediation.
+- [Regulatory Compliance](references/compliance.md) — GDPR, HIPAA, SOC 2, PCI-DSS controls and tamper-evident audit logging.
+- [Security Requirement Extraction](references/requirements.md) — Threat-to-requirement STRIDE mapping and traceability matrices.
 - [Web Protocol & Auth Audit](../security-audit/WEB-PROTOCOL-AND-AUTH.md) — Session fixation, JWT validation, and CORS audits.
-
 - [Supply Chain & Release Audit](../security-audit/SUPPLY-CHAIN-AND-RELEASE.md) — Dependency tampering, SBOM checks, and provenance verification.

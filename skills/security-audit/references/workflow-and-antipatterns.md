@@ -25,3 +25,11 @@ Do not end the run before one of exactly two terminal states: (a) all Phase 6 ar
 8. Re-reporting carried same-source prior confirmed records or using them as exemplars that anchor the hunt.
 9. Assigning severity to `needs_validation` records.
 10. Writing the report before independent verification or letting prose and JSON disagree.
+
+## Merged DevSecOps & Audit Readiness Checklist
+*(Consolidated from `security-auditor`)*
+- **Scope & Threat Model**: Confirm authorization/scope, map assets and trust boundaries, and run STRIDE threat modeling + attack trees before deep hunting.
+- **Defense-in-Depth & Auth**: Verify least privilege (RBAC/ABAC/ReBAC), OAuth 2.0/2.1 / OIDC / JWT validation, MFA on privileged paths, zero-trust boundaries, and fail-secure error handling.
+- **DevSecOps Pipeline**: Integrate SAST, DAST, dependency scanning, SBOM generation (CycloneDX/SLSA), and vault-based secrets management with automated rotation.
+- **Compliance & Incident Readiness**: Map findings against OWASP Top 10 / ASVS, regulatory controls (GDPR, HIPAA, SOC 2, PCI-DSS), and verify tamper-evident logging + residual risk sign-off.
+- **Operational Safety**: Never run intrusive tests in production without written approval, and never expose secrets or PII in reports.

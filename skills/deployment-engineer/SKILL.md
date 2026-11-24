@@ -62,3 +62,4 @@ Load these specialized references on-demand only when the task requires in-depth
 
 - [Deep Capabilities Guide](references/capabilities.md) — Detailed technical specifications, tool workflows, and sub-capabilities.
 - [Practices & Workflows Guide](references/practices.md) — Behavioral traits, interaction patterns, response approaches, and examples.
+- [Kubernetes Security Policies](references/k8s-security.md) — Pod Security Admission, NetworkPolicies, least-privilege RBAC, OPA Gatekeeper, and Istio mTLS.
