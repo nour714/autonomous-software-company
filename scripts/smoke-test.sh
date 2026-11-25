@@ -517,7 +517,7 @@ fi
 echo "[CHECK] Check 8: Installer dry-run verification..."
 
 echo "  Testing ./install.sh --dry-run..."
-DRY_RUN_OUTPUT="$("${REPO_ROOT}/install.sh" --dry-run)"
+DRY_RUN_OUTPUT="$(bash "${REPO_ROOT}/install.sh" --dry-run)"
 if echo "${DRY_RUN_OUTPUT}" | grep -q "Status: Dry-run completed successfully" && \
    echo "${DRY_RUN_OUTPUT}" | grep -q "rules/references" && \
    echo "${DRY_RUN_OUTPUT}" | grep -q "config" && \
