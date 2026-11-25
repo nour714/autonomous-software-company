@@ -369,13 +369,13 @@ function verifyReport(reportContent, projectRoot) {
 }
 
 function run(reportArg, projectRootArg) {
-  if (!reportArg || !projectRootArg) {
-    console.error("Usage: node verify-report.cjs <report.md> <project_root>");
+  if (!reportArg) {
+    console.error("Usage: node verify-report.cjs <report.md> [project_root]");
     return 1;
   }
 
   const absReportPath = path.resolve(reportArg);
-  const absProjectRoot = path.resolve(projectRootArg);
+  const absProjectRoot = path.resolve(projectRootArg || process.cwd());
 
   if (!fs.existsSync(absReportPath)) {
     console.error(`ERROR: Report file does not exist: ${reportArg}`);

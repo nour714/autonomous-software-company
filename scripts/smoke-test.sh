@@ -559,6 +559,14 @@ echo "[CHECK] Check 9: Audit report verifier test suite (verify-report.sh)..."
 node "${REPO_ROOT}/scripts/verify-report.test.cjs"
 echo "[PASS] Check 9: Audit report verifier test suite passed."
 
+# -------------------------------------------------------------
+# Check 10: End-to-end example fixtures (examples/sample-benchmark)
+# -------------------------------------------------------------
+echo "[CHECK] Check 10: Verifying examples/sample-benchmark/ fixtures..."
+bash "${REPO_ROOT}/scripts/swarm-report.sh" "${REPO_ROOT}/examples/sample-benchmark/metrics.jsonl" >/dev/null
+node "${REPO_ROOT}/scripts/verify-report.cjs" "${REPO_ROOT}/examples/sample-benchmark/audit-report.md" "${REPO_ROOT}"
+echo "[PASS] Check 10: examples/sample-benchmark/ fixtures verified."
+
 echo "============================================================"
 echo "      ALL SMOKE TEST SUITE CHECKS PASSED (EXIT CODE 0)"
 echo "============================================================"

@@ -1,0 +1,29 @@
+﻿============================================================
+         SWARM PERFORMANCE BENCHMARK REPORT
+============================================================
+Target Metrics File: examples/sample-benchmark/metrics.jsonl
+Total Records Processed: 8
+------------------------------------------------------------
+Completed Tasks: 1 / 1
+Test Pass Rate: 100.0% (8 passed)
+
+--- Task Duration by Risk Tier ---
+  tier_0: No recorded tasks
+  tier_1: avg 6.97 min (1 tasks)
+  tier_2: No recorded tasks
+
+--- Average Agent Duration ---
+  arch-critic         : avg 28.0s (1 runs)
+  architect           : avg 45.0s (1 runs)
+  backend-critic      : avg 36.0s (1 runs)
+  backend-dev         : avg 125.0s (1 runs)
+  frontend-dev        : avg 110.0s (1 runs)
+  qa-tester           : avg 52.0s (1 runs)
+  release-gatekeeper  : avg 22.0s (1 runs)
+
+Review Cap Reached (2 rounds): 0 tasks
+Fallback Model Activations: 0
+Stall Detections / Pings: 0
+------------------------------------------------------------
+END-TO-END SPEEDUP: NOT MEASURED — RUNTIME UNAVAILABLE
+============================================================
