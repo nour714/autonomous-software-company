@@ -505,3 +505,199 @@ test("worktree merge detects conflicts cleanly without leaving repo conflicted",
     0
   );
 });
+
+test("hooks install and uninstall manage pre-commit hook and protect foreign hooks", (t) => {
+  const tmpDir = initTempGitRepo(t);
+  const hookPath = path.join(tmpDir, ".git", "hooks", "pre-commit");
+
+  // Existing foreign hook is protected unless --force is supplied
+  fs.mkdirSync(path.dirname(hookPath), { recursive: true });
+  fs.writeFileSync(hookPath, "#!/usr/bin/env bash\necho custom-hook\n", "utf8");
+
+  const blockedInstall = runCli(["hooks", "install", "--dir", tmpDir]);
+  assert.equal(blockedInstall.status, 1);
+  assert.match(blockedInstall.stderr, /Refusing to overwrite without --force/);
+
+  const blockedUninstall = runCli(["hooks", "uninstall", "--dir", tmpDir]);
+  assert.equal(blockedUninstall.status, 1);
+  assert.match(blockedUninstall.stderr, /missing "# managed-by: autonomous-software-company" marker/);
+
+  // Install with --force installs managed hook with LF and marker
+  const forcedInstall = runCli(["hooks", "install", "--dir", tmpDir, "--force"]);
+  assert.equal(forcedInstall.status, 0, forcedInstall.stderr);
+  const installedJson = JSON.parse(forcedInstall.stdout.trim());
+  assert.equal(installedJson.installed, true);
+  assert.equal(installedJson.forced, true);
+
+  const hookBody = fs.readFileSync(hookPath, "utf8");
+  assert.match(hookBody, /# managed-by: autonomous-software-company/);
+  assert.match(hookBody, /lock verify-staged/);
+  assert.match(hookBody, /SWARM_SKIP_HOOKS/);
+  if (process.platform !== "win32") {
+    assert.ok((fs.statSync(hookPath).mode & 0o111) !== 0);
+  }
+
+  // Uninstall removes managed hook and is idempotent afterward
+  const uninstalled = runCli(["hooks", "uninstall", "--dir", tmpDir]);
+  assert.equal(uninstalled.status, 0, uninstalled.stderr);
+  assert.equal(JSON.parse(uninstalled.stdout.trim()).uninstalled, true);
+  assert.equal(fs.existsSync(hookPath), false);
+
+  const uninstallAgain = runCli(["hooks", "uninstall", "--dir", tmpDir]);
+  assert.equal(uninstallAgain.status, 0, uninstallAgain.stderr);
+  assert.equal(JSON.parse(uninstallAgain.stdout.trim()).uninstalled, false);
+});
+
+test("lock verify-staged blocks secret filenames and secret tokens in staged diffs", (t) => {
+  const tmpDir = initTempGitRepo(t);
+
+  // Forbidden secret filename (.env)
+  fs.writeFileSync(path.join(tmpDir, ".env"), "PORT=3000\n", "utf8");
+  assert.equal(spawnSync("git", ["add", "-f", ".env"], { cwd: tmpDir }).status, 0);
+  const envBlocked = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(envBlocked.status, 1);
+  assert.match(envBlocked.stderr, /Secret-Leak Guard.*forbidden secret filename/);
+
+  // .env.example is allowed
+  assert.equal(spawnSync("git", ["reset", "HEAD", ".env"], { cwd: tmpDir }).status, 0);
+  fs.writeFileSync(path.join(tmpDir, ".env.example"), "PORT=3000\n", "utf8");
+  assert.equal(spawnSync("git", ["add", ".env.example"], { cwd: tmpDir }).status, 0);
+  const exampleOk = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(exampleOk.status, 0, exampleOk.stderr);
+
+  // Staged diff containing secret prefix token is blocked
+  const secretToken = ["sk", "-live12345678"].join("");
+  fs.writeFileSync(path.join(tmpDir, "config.js"), `module.exports = { apiKey: "${secretToken}" };\n`, "utf8");
+  assert.equal(spawnSync("git", ["add", "config.js"], { cwd: tmpDir }).status, 0);
+  const tokenBlocked = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(tokenBlocked.status, 1);
+  assert.match(tokenBlocked.stderr, /Secret-Leak Guard/);
+});
+
+test("lock verify-staged enforces active task lease ownership", (t) => {
+  const tmpDir = initTempGitRepo(t);
+
+  assert.equal(
+    runCli([
+      "lock",
+      "acquire",
+      "--dir",
+      tmpDir,
+      "--task",
+      "TASK-OWN-1",
+      "--owner",
+      "backend-dev",
+      "--files",
+      "src/a.js",
+    ]).status,
+    0
+  );
+  assert.equal(
+    runCli([
+      "lock",
+      "acquire",
+      "--dir",
+      tmpDir,
+      "--task",
+      "TASK-OWN-2",
+      "--owner",
+      "frontend-dev",
+      "--files",
+      "src/b.js",
+    ]).status,
+    0
+  );
+
+  fs.mkdirSync(path.join(tmpDir, "src"), { recursive: true });
+  fs.writeFileSync(path.join(tmpDir, "src", "a.js"), "exports.a = 1;\n", "utf8");
+  fs.writeFileSync(path.join(tmpDir, "src", "b.js"), "exports.b = 2;\n", "utf8");
+  fs.writeFileSync(path.join(tmpDir, "src", "extra.js"), "exports.extra = 3;\n", "utf8");
+
+  // Blocking a file leased by a different active task
+  assert.equal(spawnSync("git", ["add", "src/b.js"], { cwd: tmpDir }).status, 0);
+  const otherTaskBlocked = runCli(["lock", "verify-staged", "--dir", tmpDir, "--task", "TASK-OWN-1"]);
+  assert.equal(otherTaskBlocked.status, 1);
+  assert.match(otherTaskBlocked.stderr, /locked by active task "TASK-OWN-2"/);
+
+  // Blocking file outside owned_files unless --allow-untracked-outside-swarm is passed
+  assert.equal(spawnSync("git", ["reset", "HEAD", "src/b.js"], { cwd: tmpDir }).status, 0);
+  assert.equal(spawnSync("git", ["add", "src/extra.js"], { cwd: tmpDir }).status, 0);
+  const outsideBlocked = runCli(["lock", "verify-staged", "--dir", tmpDir, "--task", "TASK-OWN-1"]);
+  assert.equal(outsideBlocked.status, 1);
+  assert.match(outsideBlocked.stderr, /outside task "TASK-OWN-1" owned_files/);
+
+  const outsideAllowed = runCli([
+    "lock",
+    "verify-staged",
+    "--dir",
+    tmpDir,
+    "--task",
+    "TASK-OWN-1",
+    "--allow-untracked-outside-swarm",
+  ]);
+  assert.equal(outsideAllowed.status, 0, outsideAllowed.stderr);
+
+  // Allowing a staged file owned by active --task (and blocking anonymous commit on locked file)
+  assert.equal(spawnSync("git", ["reset", "HEAD", "src/extra.js"], { cwd: tmpDir }).status, 0);
+  assert.equal(spawnSync("git", ["add", "src/a.js"], { cwd: tmpDir }).status, 0);
+
+  const anonBlocked = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(anonBlocked.status, 1);
+  assert.match(anonBlocked.stderr, /locked by active task "TASK-OWN-1"/);
+
+  const ownAllowed = runCli(["lock", "verify-staged", "--dir", tmpDir, "--task", "TASK-OWN-1"]);
+  assert.equal(ownAllowed.status, 0, ownAllowed.stderr);
+  assert.equal(JSON.parse(ownAllowed.stdout.trim()).task_id, "TASK-OWN-1");
+});
+
+test("lock verify-staged validates staged audit-report markdown files", (t) => {
+  const tmpDir = initTempGitRepo(t);
+  fs.mkdirSync(path.join(tmpDir, "src"), { recursive: true });
+  fs.writeFileSync(path.join(tmpDir, "src", "service.js"), "line1\nline2\nline3\n", "utf8");
+  assert.equal(spawnSync("git", ["add", "src/service.js"], { cwd: tmpDir }).status, 0);
+
+  // Invalid audit report (missing fields / bad line reference)
+  const reportPath = path.join(tmpDir, "final-audit-report.md");
+  fs.writeFileSync(
+    reportPath,
+    [
+      "# Audit Report",
+      "",
+      "### Finding 1",
+      "- **id**: F-1",
+      "- **severity**: P1",
+      "- **file:line**: [src/missing.js](src/missing.js#L1)",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  assert.equal(spawnSync("git", ["add", "final-audit-report.md"], { cwd: tmpDir }).status, 0);
+  const badReport = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(badReport.status, 1);
+  assert.match(badReport.stderr, /Audit Report Guard failed/);
+
+  // Valid audit report passes verification
+  fs.writeFileSync(
+    reportPath,
+    [
+      "# Audit Report",
+      "",
+      "### F-1: Validated Finding",
+      "- **id**: F-1",
+      "- **severity**: P2",
+      "- **file:line**: [src/service.js](src/service.js#L2)",
+      "- **evidence**: `node --test` reproduced missing check on line 2",
+      "- **confidence**: verified",
+      "- **intent_check**: bug",
+      "- **proposed_fix**: Add guard clause at line 2",
+      "- **fix_tier**: 1",
+      "- **regression_test**: Added unit test asserting guard throws on invalid input",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  assert.equal(spawnSync("git", ["add", "final-audit-report.md"], { cwd: tmpDir }).status, 0);
+  const goodReport = runCli(["lock", "verify-staged", "--dir", tmpDir]);
+  assert.equal(goodReport.status, 0, goodReport.stderr);
+  assert.equal(JSON.parse(goodReport.stdout.trim()).ok, true);
+});
