@@ -3,17 +3,26 @@
 # ==============================================================================
 param(
     [switch]$DryRun,
-    [switch]$Verify
+    [switch]$Verify,
+    [Alias("Host")]
+    [string]$TargetHost = "antigravity"
 )
 
 $ErrorActionPreference = 'Stop'
 
 # Parse args passed
-if ($args -contains '--dry-run' -or $args -contains '-DryRun') {
-    $DryRun = $true
-}
-if ($args -contains '--verify' -or $args -contains '-Verify') {
-    $Verify = $true
+for ($i = 0; $i -lt $args.Count; $i++) {
+    $arg = [string]$args[$i]
+    if ($arg -eq '--dry-run' -or $arg -eq '-DryRun') {
+        $DryRun = $true
+    } elseif ($arg -eq '--verify' -or $arg -eq '-Verify') {
+        $Verify = $true
+    } elseif ($arg -eq '--host' -and ($i + 1) -lt $args.Count) {
+        $TargetHost = [string]$args[$i + 1]
+        $i++
+    } elseif ($arg -like '--host=*') {
+        $TargetHost = $arg.Substring(7)
+    }
 }
 
 $sourceRoot = if ($env:SWARM_SOURCE_DIR) { 
@@ -32,6 +41,25 @@ $baseTarget = if ($env:SWARM_TARGET_DIR) {
     $env:SWARM_TARGET_DIR
 } else {
     "$env:USERPROFILE\.gemini\config"
+}
+
+if ([string]::IsNullOrWhiteSpace($TargetHost)) {
+    Write-Error "Error: --host requires a value (antigravity|gemini-cli|claude-code|cursor|all)"
+    exit 1
+}
+
+if ($TargetHost -ne "antigravity") {
+    $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+    if (-not $nodeCmd) {
+        Write-Error "Error: node is required to export host '$TargetHost'"
+        exit 1
+    }
+    $exportScript = Join-Path $sourceRoot "scripts\export-host.cjs"
+    $exportArgs = @($exportScript, "--host", $TargetHost, "--source", $sourceRoot, "--target", $baseTarget)
+    if ($DryRun) { $exportArgs += "--dry-run" }
+    if ($Verify) { $exportArgs += "--verify" }
+    & node @exportArgs
+    exit $LASTEXITCODE
 }
 
 $targetSkills  = Join-Path $baseTarget "skills"

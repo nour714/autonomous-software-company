@@ -7,12 +7,32 @@ shopt -s nullglob
 
 DRY_RUN=false
 VERIFY=false
-for arg in "$@"; do
-  if [ "$arg" == "--dry-run" ]; then
-    DRY_RUN=true
-  elif [ "$arg" == "--verify" ]; then
-    VERIFY=true
-  fi
+HOST_NAME="antigravity"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      ;;
+    --verify)
+      VERIFY=true
+      ;;
+    --host)
+      if [ "$#" -lt 2 ] || [ -z "${2:-}" ]; then
+        echo "Error: --host requires a value (antigravity|gemini-cli|claude-code|cursor|all)" >&2
+        exit 1
+      fi
+      HOST_NAME="$2"
+      shift
+      ;;
+    --host=*)
+      HOST_NAME="${1#--host=}"
+      if [ -z "$HOST_NAME" ]; then
+        echo "Error: --host requires a value (antigravity|gemini-cli|claude-code|cursor|all)" >&2
+        exit 1
+      fi
+      ;;
+  esac
+  shift
 done
 
 SOURCE_ROOT="${SWARM_SOURCE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
@@ -23,6 +43,21 @@ SOURCE_CONFIG="$SOURCE_ROOT/config"
 SOURCE_SCRIPTS="$SOURCE_ROOT/scripts"
 
 BASE_TARGET="${SWARM_TARGET_DIR:-$HOME/.gemini/config}"
+
+if [ "$HOST_NAME" != "antigravity" ]; then
+  if ! command -v node >/dev/null 2>&1; then
+    echo "Error: node is required to export host '$HOST_NAME'" >&2
+    exit 1
+  fi
+  EXPORT_ARGS=(--host "$HOST_NAME" --source "$SOURCE_ROOT" --target "$BASE_TARGET")
+  if [ "$DRY_RUN" = true ]; then
+    EXPORT_ARGS+=(--dry-run)
+  fi
+  if [ "$VERIFY" = true ]; then
+    EXPORT_ARGS+=(--verify)
+  fi
+  exec node "$SOURCE_ROOT/scripts/export-host.cjs" "${EXPORT_ARGS[@]}"
+fi
 TARGET_SKILLS="$BASE_TARGET/skills"
 TARGET_RULES="$BASE_TARGET/rules"
 TARGET_AGENTS="$BASE_TARGET/agents"
