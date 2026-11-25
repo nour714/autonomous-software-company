@@ -8,8 +8,10 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 const MAX_FILES_PER_TASK = 5;
+const SAFE_TASK_ID_REGEX = /^[a-zA-Z0-9._-]+$/;
 const VALID_MODES = new Set(["quick", "standard", "enterprise"]);
 const VALID_TIERS = new Set(["tier_0", "tier_1", "tier_2"]);
 const TIER_BUDGETS = Object.freeze({
@@ -29,7 +31,11 @@ function printUsage() {
   node scripts/swarm-cli.cjs lock release --task <TASK_ID> [--status <completed|failed|cancelled>] [--dir <root>]
   node scripts/swarm-cli.cjs log-metric --type <task_summary|agent_run|stall> --task <TASK_ID> --tier <tier_0|tier_1|tier_2> --status <pass|fail|stalled> --duration-ms <number> [--agent <name>] [--tests-passed <n>] [--tests-failed <n>] [--dir <root>]
   node scripts/swarm-cli.cjs check-stalls [--warn-min 3] [--escalate-min 5] [--dir <root>]
-  node scripts/swarm-cli.cjs status [--dir <root>]`);
+  node scripts/swarm-cli.cjs status [--dir <root>]
+  node scripts/swarm-cli.cjs worktree create --task <TASK_ID> --owner <AGENT> [--base <branch>] [--dir <root>]
+  node scripts/swarm-cli.cjs worktree list [--json] [--dir <root>]
+  node scripts/swarm-cli.cjs worktree merge --task <TASK_ID> [--into <branch>] [--no-ff] [--dir <root>]
+  node scripts/swarm-cli.cjs worktree cleanup --task <TASK_ID> [--delete-branch] [--dir <root>]`);
 }
 
 function parseFlags(args) {
@@ -457,6 +463,342 @@ function cmdStatus(flags) {
   return 0;
 }
 
+function validateTaskId(taskId) {
+  if (
+    typeof taskId !== "string" ||
+    !SAFE_TASK_ID_REGEX.test(taskId) ||
+    taskId === "." ||
+    taskId === ".." ||
+    taskId.includes("..")
+  ) {
+    throw new Error(`Invalid task ID "${taskId}". Must match ^[a-zA-Z0-9._-]+$ without '..'.`);
+  }
+  return taskId;
+}
+
+function runGit(args, cwd) {
+  return spawnSync("git", args, { cwd, encoding: "utf8" });
+}
+
+function ensureGitRepo(dir) {
+  const res = runGit(["rev-parse", "--show-toplevel"], dir);
+  if (res.status !== 0) {
+    throw new Error(`Not inside a git repository: ${dir}`);
+  }
+  return res.stdout.trim();
+}
+
+function cmdWorktreeCreate(flags) {
+  const rawTaskId = typeof flags.task === "string" ? flags.task.trim() : "";
+  const owner = typeof flags.owner === "string" ? flags.owner.trim() : "";
+  const baseRef = typeof flags.base === "string" ? flags.base.trim() : "HEAD";
+  const mode = typeof flags.mode === "string" ? flags.mode.trim() : "standard";
+  const tier = typeof flags.tier === "string" ? flags.tier.trim() : "tier_1";
+
+  if (!rawTaskId) throw new Error("--task is required");
+  if (!owner) throw new Error("--owner is required");
+  const taskId = validateTaskId(rawTaskId);
+
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  ensureGitRepo(paths.root);
+  const state = readState(paths.stateFile);
+
+  const branchName = `swarm/${taskId}`;
+  const worktreeRel = `.swarm/worktrees/${taskId}`;
+  const worktreeAbs = path.join(paths.swarmDir, "worktrees", taskId);
+
+  if (fs.existsSync(worktreeAbs)) {
+    throw new Error(`Worktree already exists: ${worktreeRel}`);
+  }
+  if (runGit(["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`], paths.root).status === 0) {
+    throw new Error(`Branch already exists: ${branchName}`);
+  }
+
+  fs.mkdirSync(path.dirname(worktreeAbs), { recursive: true });
+  const addRes = runGit(["worktree", "add", "-b", branchName, worktreeRel, baseRef], paths.root);
+  if (addRes.status !== 0) {
+    throw new Error(`git worktree add failed: ${(addRes.stderr || addRes.stdout || "").trim()}`);
+  }
+
+  const nowIso = new Date().toISOString();
+  let taskEntry = state.tasks.find((t) => t.task_id === taskId);
+  if (taskEntry) {
+    taskEntry.worktree_path = worktreeRel;
+    taskEntry.branch = branchName;
+    taskEntry.updated_at = nowIso;
+  } else {
+    taskEntry = {
+      task_id: taskId,
+      mode,
+      tier,
+      owner,
+      owned_files: [],
+      lease_status: "active",
+      status: "in_progress",
+      time_budget_minutes: TIER_BUDGETS[tier] || 15,
+      review_rounds: 0,
+      dependencies: [],
+      worktree_path: worktreeRel,
+      branch: branchName,
+      started_at: nowIso,
+      updated_at: nowIso,
+      last_heartbeat_at: nowIso,
+    };
+    state.tasks.push(taskEntry);
+  }
+
+  writeStateAtomic(paths, state);
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      task_id: taskId,
+      owner,
+      branch: branchName,
+      worktree_path: worktreeRel,
+    })
+  );
+  return 0;
+}
+
+function cmdWorktreeList(flags) {
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  ensureGitRepo(paths.root);
+
+  const state = fs.existsSync(paths.stateFile) ? readState(paths.stateFile) : { tasks: [] };
+  const porcelainRes = runGit(["worktree", "list", "--porcelain"], paths.root);
+  const liveWorktrees = new Map();
+
+  if (porcelainRes.status === 0) {
+    let currentPath = null;
+    let currentBranch = null;
+    for (const line of porcelainRes.stdout.split(/\r?\n/)) {
+      if (line.startsWith("worktree ")) {
+        currentPath = line.slice("worktree ".length).trim();
+        currentBranch = null;
+      } else if (line.startsWith("branch ")) {
+        currentBranch = line.slice("branch ".length).trim().replace(/^refs\/heads\//, "");
+      } else if (line.trim() === "" && currentPath) {
+        if (currentBranch && currentBranch.startsWith("swarm/")) {
+          liveWorktrees.set(currentBranch, currentPath);
+        }
+        currentPath = null;
+        currentBranch = null;
+      }
+    }
+    if (currentPath && currentBranch && currentBranch.startsWith("swarm/")) {
+      liveWorktrees.set(currentBranch, currentPath);
+    }
+  }
+
+  const results = [];
+  const seenBranches = new Set();
+
+  for (const t of state.tasks) {
+    if (!t.worktree_path && !t.branch) continue;
+    const branchName = t.branch || `swarm/${t.task_id}`;
+    const wtRel = t.worktree_path || `.swarm/worktrees/${t.task_id}`;
+    const wtAbs = path.resolve(paths.root, wtRel);
+    const existsOnDisk = fs.existsSync(wtAbs);
+    if (!existsOnDisk && !liveWorktrees.has(branchName)) continue;
+
+    seenBranches.add(branchName);
+    let dirty = false;
+    if (existsOnDisk) {
+      const stRes = runGit(["-C", wtAbs, "status", "--porcelain"], paths.root);
+      dirty = stRes.status === 0 && stRes.stdout.trim().length > 0;
+    }
+
+    results.push({
+      task_id: t.task_id,
+      owner: t.owner || "unknown",
+      branch: branchName,
+      worktree_path: wtRel,
+      status: dirty ? "dirty" : "clean",
+      task_status: t.status || "in_progress",
+    });
+  }
+
+  for (const [branchName, wtAbs] of liveWorktrees.entries()) {
+    if (seenBranches.has(branchName)) continue;
+    const taskId = branchName.replace(/^swarm\//, "");
+    const stRes = runGit(["-C", wtAbs, "status", "--porcelain"], paths.root);
+    const dirty = stRes.status === 0 && stRes.stdout.trim().length > 0;
+    results.push({
+      task_id: taskId,
+      owner: "unknown",
+      branch: branchName,
+      worktree_path: `.swarm/worktrees/${taskId}`,
+      status: dirty ? "dirty" : "clean",
+      task_status: "untracked",
+    });
+  }
+
+  if (flags.json) {
+    console.log(JSON.stringify({ worktrees: results }));
+    return 0;
+  }
+
+  if (results.length === 0) {
+    console.log("No active swarm worktrees.");
+    return 0;
+  }
+
+  console.log("TASK_ID      | OWNER            | BRANCH               | STATE | PATH");
+  console.log("-------------+------------------+----------------------+-------+-----------------------------");
+  for (const w of results) {
+    console.log(
+      `${String(w.task_id).padEnd(12)} | ${String(w.owner).padEnd(16)} | ${String(w.branch).padEnd(20)} | ${String(w.status).padEnd(5)} | ${w.worktree_path}`
+    );
+  }
+  return 0;
+}
+
+function cmdWorktreeMerge(flags) {
+  const rawTaskId = typeof flags.task === "string" ? flags.task.trim() : "";
+  if (!rawTaskId) throw new Error("--task is required");
+  const taskId = validateTaskId(rawTaskId);
+
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  ensureGitRepo(paths.root);
+  const state = readState(paths.stateFile);
+
+  const taskEntry = state.tasks.find((t) => t.task_id === taskId);
+  const branchName = (taskEntry && taskEntry.branch) || `swarm/${taskId}`;
+  const wtRel = (taskEntry && taskEntry.worktree_path) || `.swarm/worktrees/${taskId}`;
+  const wtAbs = path.resolve(paths.root, wtRel);
+
+  if (runGit(["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`], paths.root).status !== 0) {
+    throw new Error(`Worktree branch does not exist: ${branchName}`);
+  }
+
+  if (fs.existsSync(wtAbs)) {
+    const wtStatus = runGit(["-C", wtAbs, "status", "--porcelain"], paths.root);
+    if (wtStatus.status !== 0) {
+      throw new Error(`Failed to inspect worktree status at ${wtRel}`);
+    }
+    if (wtStatus.stdout.trim().length > 0) {
+      throw new Error(`Worktree for "${taskId}" has uncommitted changes. Commit or clean before merging.`);
+    }
+  }
+
+  const headRes = runGit(["rev-parse", "--abbrev-ref", "HEAD"], paths.root);
+  const currentBranch = headRes.status === 0 ? headRes.stdout.trim() : "HEAD";
+  const targetBranch = typeof flags.into === "string" ? flags.into.trim() : currentBranch;
+
+  // Dry-run conflict check via git merge-tree --write-tree (Git 2.38+)
+  const dryRes = runGit(["merge-tree", "--write-tree", targetBranch, branchName], paths.root);
+  if (dryRes.status !== 0) {
+    const combined = `${dryRes.stdout || ""}\n${dryRes.stderr || ""}`;
+    if (!/unknown option|unrecognized/i.test(combined)) {
+      const conflictFiles = [];
+      for (const line of combined.split(/\r?\n/)) {
+        const m = line.match(/CONFLICT\s*\([^)]+\):\s*Merge conflict in\s+(.+)$/i);
+        if (m) conflictFiles.push(m[1].trim());
+      }
+      const detail = conflictFiles.length > 0 ? ` Conflicting files: ${conflictFiles.join(", ")}` : "";
+      throw new Error(`Merge conflict detected merging "${branchName}" into "${targetBranch}".${detail}`);
+    }
+  }
+
+  if (typeof flags.into === "string" && targetBranch !== currentBranch) {
+    const coRes = runGit(["checkout", targetBranch], paths.root);
+    if (coRes.status !== 0) {
+      throw new Error(`Failed to checkout target branch "${targetBranch}": ${(coRes.stderr || "").trim()}`);
+    }
+  }
+
+  const mergeArgs = ["merge"];
+  if (flags["no-ff"]) {
+    mergeArgs.push("--no-ff");
+  }
+  mergeArgs.push("--no-edit", branchName);
+
+  const mergeRes = runGit(mergeArgs, paths.root);
+  if (mergeRes.status !== 0) {
+    runGit(["merge", "--abort"], paths.root);
+    throw new Error(
+      `git merge failed for "${branchName}" into "${targetBranch}": ${(mergeRes.stderr || mergeRes.stdout || "").trim()}`
+    );
+  }
+
+  if (taskEntry) {
+    taskEntry.status = "merged";
+    taskEntry.lease_status = "released";
+    taskEntry.updated_at = new Date().toISOString();
+    writeStateAtomic(paths, state);
+  }
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      task_id: taskId,
+      branch: branchName,
+      merged_into: targetBranch,
+      status: "merged",
+    })
+  );
+  return 0;
+}
+
+function cmdWorktreeCleanup(flags) {
+  const rawTaskId = typeof flags.task === "string" ? flags.task.trim() : "";
+  if (!rawTaskId) throw new Error("--task is required");
+  const taskId = validateTaskId(rawTaskId);
+
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  ensureGitRepo(paths.root);
+
+  const state = fs.existsSync(paths.stateFile) ? readState(paths.stateFile) : null;
+  const taskEntry = state ? state.tasks.find((t) => t.task_id === taskId) : null;
+  const branchName = (taskEntry && taskEntry.branch) || `swarm/${taskId}`;
+  const wtRel = (taskEntry && taskEntry.worktree_path) || `.swarm/worktrees/${taskId}`;
+  const wtAbs = path.resolve(paths.root, wtRel);
+
+  let worktreeRemoved = false;
+  if (fs.existsSync(wtAbs)) {
+    const rmRes = runGit(["worktree", "remove", "--force", wtRel], paths.root);
+    if (rmRes.status !== 0) {
+      throw new Error(`git worktree remove failed: ${(rmRes.stderr || rmRes.stdout || "").trim()}`);
+    }
+    worktreeRemoved = true;
+  }
+  runGit(["worktree", "prune"], paths.root);
+
+  let branchDeleted = false;
+  if (flags["delete-branch"]) {
+    if (runGit(["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`], paths.root).status === 0) {
+      const delRes = runGit(["branch", "-D", branchName], paths.root);
+      if (delRes.status !== 0) {
+        throw new Error(`git branch -D failed: ${(delRes.stderr || delRes.stdout || "").trim()}`);
+      }
+      branchDeleted = true;
+    }
+  }
+
+  if (state && taskEntry) {
+    if (taskEntry.lease_status === "active") {
+      taskEntry.lease_status = "released";
+    }
+    taskEntry.worktree_cleaned = true;
+    if (branchDeleted) {
+      taskEntry.branch_deleted = true;
+    }
+    taskEntry.updated_at = new Date().toISOString();
+    writeStateAtomic(paths, state);
+  }
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      task_id: taskId,
+      worktree_removed: worktreeRemoved,
+      branch_deleted: branchDeleted,
+    })
+  );
+  return 0;
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -478,6 +820,15 @@ function main(argv) {
       if (sub === "release") return cmdLockRelease(flags);
       throw new Error(`Unknown lock subcommand "${sub}". Use acquire, check, or release.`);
     }
+    if (cmd === "worktree") {
+      const sub = args[1];
+      const flags = parseFlags(args.slice(2));
+      if (sub === "create") return cmdWorktreeCreate(flags);
+      if (sub === "list") return cmdWorktreeList(flags);
+      if (sub === "merge") return cmdWorktreeMerge(flags);
+      if (sub === "cleanup") return cmdWorktreeCleanup(flags);
+      throw new Error(`Unknown worktree subcommand "${sub}". Use create, list, merge, or cleanup.`);
+    }
     if (cmd === "log-metric") {
       return cmdLogMetric(parseFlags(args.slice(1)));
     }
@@ -497,6 +848,7 @@ function main(argv) {
 module.exports = {
   MAX_FILES_PER_TASK,
   normalizeRelativePath,
+  validateTaskId,
   main,
 };
 
