@@ -50,8 +50,9 @@ Risk tiers govern reviewer depth and time budgets, stored by Dispatcher in `.swa
 ---
 
 ## 6. Streamed Parallel Execution & Contract Freeze
-- Once system architecture and API contracts are approved by `arch-critic`, contracts are frozen and `backend-dev`, `frontend-dev` (building against contract mocks), and `qa-tester` (drafting deterministic harnesses) execute concurrently in isolated workspaces (`workspace: "share"`).
+- Once system architecture and API contracts are approved by `arch-critic`, contracts are frozen and `backend-dev`, `frontend-dev` (building against contract mocks), and `qa-tester` (drafting deterministic harnesses) execute concurrently in isolated workspaces (`workspace: "share"` or optional git worktree isolation via `node scripts/swarm-cli.cjs worktree create`).
 - Reopening a frozen contract requires a formal Dispatcher decision card specifying interface changes, rationale, mock/test updates, and notifications to all dependent agents.
+- When `standard` or `enterprise` tracks run in worktrees, `@release-gatekeeper` verifies tests, merges clean branches via `swarm-cli.cjs worktree merge`, and cleans up via `worktree cleanup --delete-branch`.
 
 ---
 

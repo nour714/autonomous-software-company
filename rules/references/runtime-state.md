@@ -41,6 +41,14 @@ Never hand-edit `.swarm/state.json` or `.swarm/metrics.jsonl`. `@dispatcher` and
 
 ---
 
+## 1b. Parallel `git worktree` Isolation (Optional)
+For parallel `standard`/`enterprise` tasks that benefit from separate directories, `git index` isolation, and independent test runs:
+- **Create Worktree:** `node scripts/swarm-cli.cjs worktree create --task <TASK_ID> --owner <AGENT> [--base <branch>]` attaches `.swarm/worktrees/<TASK_ID>` on branch `swarm/<TASK_ID>` and records `worktree_path` + `branch` in `.swarm/state.json`.
+- **Inspect Worktrees:** `node scripts/swarm-cli.cjs worktree list [--json]` reports clean/dirty status for every swarm worktree.
+- **Gatekeeper Merge Workflow:** Once critics and `@qa-tester` pass, `@release-gatekeeper` ensures the worktree is committed/clean, runs `node scripts/swarm-cli.cjs worktree merge --task <TASK_ID> [--into <branch>] [--no-ff]` (dry-run conflict-checked), and removes the worktree via `node scripts/swarm-cli.cjs worktree cleanup --task <TASK_ID> --delete-branch`.
+
+---
+
 ## 2. Deferred Findings Log (`.swarm/followups.md`)
 Append-only log for deferred non-blocking items (`MEDIUM` and `LOW` severity). Each entry records:
 - `TASK_ID` and timestamp

@@ -382,3 +382,126 @@ test("check-stalls detects warn at 3m and escalate at 5m and exits with code 2",
   assert.equal(stallJson.escalate.length, 1);
   assert.equal(stallJson.escalate[0].task_id, "TASK-ESC");
 });
+
+function initTempGitRepo(t) {
+  const tmpDir = makeTempProject();
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  assert.equal(spawnSync("git", ["init", "-b", "main"], { cwd: tmpDir, encoding: "utf8" }).status, 0);
+  assert.equal(spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: tmpDir }).status, 0);
+  assert.equal(spawnSync("git", ["config", "user.name", "Swarm Test"], { cwd: tmpDir }).status, 0);
+
+  fs.writeFileSync(path.join(tmpDir, "app.txt"), "base line\n", "utf8");
+  fs.writeFileSync(path.join(tmpDir, ".gitignore"), ".swarm/\n", "utf8");
+  assert.equal(spawnSync("git", ["add", "app.txt", ".gitignore"], { cwd: tmpDir }).status, 0);
+  assert.equal(spawnSync("git", ["commit", "-m", "initial commit"], { cwd: tmpDir }).status, 0);
+
+  assert.equal(runCli(["init", "--dir", tmpDir]).status, 0);
+  return tmpDir;
+}
+
+test("worktree create, list, isolated commit, clean merge, and cleanup lifecycle", (t) => {
+  const tmpDir = initTempGitRepo(t);
+
+  // Reject unsafe task ID
+  const badId = runCli(["worktree", "create", "--dir", tmpDir, "--task", "../evil", "--owner", "backend-dev"]);
+  assert.equal(badId.status, 1);
+
+  // Create isolated worktree
+  const created = runCli([
+    "worktree",
+    "create",
+    "--dir",
+    tmpDir,
+    "--task",
+    "TASK-WT-1",
+    "--owner",
+    "backend-dev",
+  ]);
+  assert.equal(created.status, 0, created.stderr);
+  const createdJson = JSON.parse(created.stdout.trim());
+  assert.equal(createdJson.branch, "swarm/TASK-WT-1");
+  assert.equal(createdJson.worktree_path, ".swarm/worktrees/TASK-WT-1");
+
+  const wtAbs = path.join(tmpDir, ".swarm", "worktrees", "TASK-WT-1");
+  assert.equal(fs.existsSync(wtAbs), true);
+
+  // Duplicate create rejected
+  const dup = runCli(["worktree", "create", "--dir", tmpDir, "--task", "TASK-WT-1", "--owner", "backend-dev"]);
+  assert.equal(dup.status, 1);
+
+  // Dirty file inside worktree shows dirty in list and blocks merge
+  fs.writeFileSync(path.join(wtAbs, "feature.txt"), "wip\n", "utf8");
+  const listDirty = runCli(["worktree", "list", "--dir", tmpDir, "--json"]);
+  assert.equal(listDirty.status, 0, listDirty.stderr);
+  const listDirtyJson = JSON.parse(listDirty.stdout.trim());
+  assert.equal(listDirtyJson.worktrees.length, 1);
+  assert.equal(listDirtyJson.worktrees[0].status, "dirty");
+
+  const dirtyMerge = runCli(["worktree", "merge", "--dir", tmpDir, "--task", "TASK-WT-1"]);
+  assert.equal(dirtyMerge.status, 1);
+  assert.match(dirtyMerge.stderr, /uncommitted changes/);
+
+  // Commit inside isolated worktree -> list shows clean -> merge succeeds
+  assert.equal(spawnSync("git", ["add", "feature.txt"], { cwd: wtAbs }).status, 0);
+  assert.equal(spawnSync("git", ["commit", "-m", "feat: add feature"], { cwd: wtAbs }).status, 0);
+
+  const listClean = runCli(["worktree", "list", "--dir", tmpDir, "--json"]);
+  assert.equal(JSON.parse(listClean.stdout.trim()).worktrees[0].status, "clean");
+
+  const merged = runCli(["worktree", "merge", "--dir", tmpDir, "--task", "TASK-WT-1", "--no-ff"]);
+  assert.equal(merged.status, 0, merged.stderr);
+  const mergedJson = JSON.parse(merged.stdout.trim());
+  assert.equal(mergedJson.status, "merged");
+  assert.equal(fs.existsSync(path.join(tmpDir, "feature.txt")), true);
+
+  const stateAfterMerge = JSON.parse(fs.readFileSync(path.join(tmpDir, ".swarm", "state.json"), "utf8"));
+  assert.equal(stateAfterMerge.tasks.find((x) => x.task_id === "TASK-WT-1").status, "merged");
+
+  // Cleanup removes worktree directory and branch
+  const cleaned = runCli(["worktree", "cleanup", "--dir", tmpDir, "--task", "TASK-WT-1", "--delete-branch"]);
+  assert.equal(cleaned.status, 0, cleaned.stderr);
+  const cleanedJson = JSON.parse(cleaned.stdout.trim());
+  assert.equal(cleanedJson.worktree_removed, true);
+  assert.equal(cleanedJson.branch_deleted, true);
+  assert.equal(fs.existsSync(wtAbs), false);
+
+  const branchCheck = spawnSync("git", ["show-ref", "--verify", "--quiet", "refs/heads/swarm/TASK-WT-1"], {
+    cwd: tmpDir,
+  });
+  assert.notEqual(branchCheck.status, 0);
+});
+
+test("worktree merge detects conflicts cleanly without leaving repo conflicted", (t) => {
+  const tmpDir = initTempGitRepo(t);
+
+  assert.equal(
+    runCli(["worktree", "create", "--dir", tmpDir, "--task", "TASK-CONF", "--owner", "frontend-dev"]).status,
+    0
+  );
+  const wtAbs = path.join(tmpDir, ".swarm", "worktrees", "TASK-CONF");
+
+  // Competing edit on app.txt in main
+  fs.writeFileSync(path.join(tmpDir, "app.txt"), "main branch edit\n", "utf8");
+  assert.equal(spawnSync("git", ["add", "app.txt"], { cwd: tmpDir }).status, 0);
+  assert.equal(spawnSync("git", ["commit", "-m", "main edit"], { cwd: tmpDir }).status, 0);
+
+  // Competing edit on app.txt in worktree
+  fs.writeFileSync(path.join(wtAbs, "app.txt"), "worktree branch edit\n", "utf8");
+  assert.equal(spawnSync("git", ["add", "app.txt"], { cwd: wtAbs }).status, 0);
+  assert.equal(spawnSync("git", ["commit", "-m", "worktree edit"], { cwd: wtAbs }).status, 0);
+
+  const mergeConflict = runCli(["worktree", "merge", "--dir", tmpDir, "--task", "TASK-CONF"]);
+  assert.equal(mergeConflict.status, 1);
+  assert.match(mergeConflict.stderr, /Merge conflict detected/);
+  assert.match(mergeConflict.stderr, /app\.txt/);
+
+  // Main repo working tree remains completely clean (no MERGE_HEAD left behind)
+  const mainStatus = spawnSync("git", ["status", "--porcelain"], { cwd: tmpDir, encoding: "utf8" });
+  assert.equal(mainStatus.stdout.trim(), "");
+
+  assert.equal(
+    runCli(["worktree", "cleanup", "--dir", tmpDir, "--task", "TASK-CONF", "--delete-branch"]).status,
+    0
+  );
+});
