@@ -29,6 +29,9 @@ function printUsage() {
   node scripts/swarm-cli.cjs lock acquire --task <TASK_ID> --owner <AGENT> --files <f1,f2,...> [--mode <quick|standard|enterprise>] [--tier <tier_0|tier_1|tier_2>] [--dir <root>]
   node scripts/swarm-cli.cjs lock check --file <path> [--dir <root>]
   node scripts/swarm-cli.cjs lock release --task <TASK_ID> [--status <completed|failed|cancelled>] [--dir <root>]
+  node scripts/swarm-cli.cjs lock verify-staged [--task <TASK_ID>] [--allow-untracked-outside-swarm] [--dir <root>]
+  node scripts/swarm-cli.cjs hooks install [--force] [--dir <repo-root>]
+  node scripts/swarm-cli.cjs hooks uninstall [--dir <repo-root>]
   node scripts/swarm-cli.cjs log-metric --type <task_summary|agent_run|stall> --task <TASK_ID> --tier <tier_0|tier_1|tier_2> --status <pass|fail|stalled> --duration-ms <number> [--agent <name>] [--tests-passed <n>] [--tests-failed <n>] [--dir <root>]
   node scripts/swarm-cli.cjs check-stalls [--warn-min 3] [--escalate-min 5] [--dir <root>]
   node scripts/swarm-cli.cjs status [--dir <root>]
@@ -799,6 +802,314 @@ function cmdWorktreeCleanup(flags) {
   return 0;
 }
 
+const HOOK_MARKER = "# managed-by: autonomous-software-company";
+
+function buildSecretPatterns() {
+  return [
+    { label: "OpenAI-style secret prefix", regex: new RegExp("\\b" + ["sk", "-"].join("") + "[A-Za-z0-9_-]{3,}") },
+    { label: "GitHub token prefix", regex: new RegExp("\\b" + ["ghp", "_"].join("") + "[A-Za-z0-9_-]{3,}") },
+    { label: "Google API key prefix", regex: new RegExp("\\b" + ["AI", "za"].join("") + "[A-Za-z0-9_-]{3,}") },
+    {
+      label: "Private key block",
+      regex: new RegExp(["-----BEGIN ", "(?:[A-Z0-9 ]+ )?", "PRIVATE KEY-----"].join("")),
+    },
+  ];
+}
+
+function isForbiddenSecretFilename(relPath) {
+  const base = path.posix.basename(relPath);
+  const lower = base.toLowerCase();
+  if (lower === ".env" || (lower.startsWith(".env.") && lower !== ".env.example")) {
+    return true;
+  }
+  if (/\.(pem|key)$/i.test(lower)) {
+    return true;
+  }
+  if (["credentials.json", "serviceaccountkey.json", "tokens.json", "auth.json"].includes(lower)) {
+    return true;
+  }
+  return false;
+}
+
+function resolveStateFileForRepo(paths, repoRoot) {
+  if (fs.existsSync(paths.stateFile)) {
+    return paths.stateFile;
+  }
+  const commonDirRes = runGit(["rev-parse", "--git-common-dir"], repoRoot);
+  if (commonDirRes.status === 0) {
+    const rawCommon = commonDirRes.stdout.trim();
+    const absCommon = path.isAbsolute(rawCommon) ? rawCommon : path.resolve(repoRoot, rawCommon);
+    const sharedState = path.join(path.dirname(absCommon), ".swarm", "state.json");
+    if (fs.existsSync(sharedState)) {
+      return sharedState;
+    }
+  }
+  return null;
+}
+
+function cmdLockVerifyStaged(flags) {
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  const repoRoot = ensureGitRepo(paths.root);
+
+  const stagedRes = runGit(["diff", "--cached", "--name-status", "-z"], repoRoot);
+  if (stagedRes.status !== 0) {
+    throw new Error(`git diff --cached failed: ${(stagedRes.stderr || stagedRes.stdout || "").trim()}`);
+  }
+
+  const tokens = (stagedRes.stdout || "").split("\0");
+  const stagedEntries = [];
+  for (let i = 0; i < tokens.length; ) {
+    const statusToken = tokens[i++];
+    if (!statusToken) break;
+    const code = statusToken[0];
+    if (code === "R" || code === "C") {
+      const oldPath = tokens[i++];
+      const newPath = tokens[i++];
+      if (newPath) {
+        stagedEntries.push({
+          status: code,
+          path: normalizeRelativePath(newPath),
+          oldPath: oldPath ? normalizeRelativePath(oldPath) : null,
+        });
+      }
+    } else {
+      const filePath = tokens[i++];
+      if (filePath) {
+        stagedEntries.push({
+          status: code,
+          path: normalizeRelativePath(filePath),
+          oldPath: null,
+        });
+      }
+    }
+  }
+
+  const effectiveTaskId =
+    (typeof flags.task === "string" && flags.task.trim()) ||
+    (process.env.SWARM_TASK_ID ? process.env.SWARM_TASK_ID.trim() : "");
+
+  if (stagedEntries.length === 0) {
+    console.log(JSON.stringify({ ok: true, checked_files: 0, task_id: effectiveTaskId || null }));
+    return 0;
+  }
+
+  const failures = [];
+  const secretPatterns = buildSecretPatterns();
+
+  // 1. Secret-Leak Guard (filename + added diff lines)
+  for (const entry of stagedEntries) {
+    if (entry.status === "D") continue;
+
+    if (isForbiddenSecretFilename(entry.path)) {
+      failures.push(`Secret-Leak Guard: forbidden secret filename staged: "${entry.path}"`);
+      continue;
+    }
+
+    const diffRes = runGit(["diff", "--cached", "--unified=0", "--", entry.path], repoRoot);
+    if (diffRes.status === 0 && diffRes.stdout) {
+      const lines = diffRes.stdout.split(/\r?\n/);
+      for (const line of lines) {
+        if (!line.startsWith("+") || line.startsWith("+++ ")) continue;
+        const addedText = line.slice(1);
+        for (const pat of secretPatterns) {
+          if (pat.regex.test(addedText)) {
+            failures.push(`Secret-Leak Guard (${pat.label}): detected secret token in staged diff of "${entry.path}"`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Lease Ownership Guard
+  const stateFile = resolveStateFileForRepo(paths, repoRoot);
+  const allowOutside = Boolean(flags["allow-untracked-outside-swarm"]);
+
+  if (stateFile) {
+    const state = readState(stateFile);
+    const activeTasks = state.tasks.filter((t) => t.lease_status === "active");
+
+    if (effectiveTaskId) {
+      const ownTask = activeTasks.find((t) => t.task_id === effectiveTaskId);
+      if (!ownTask) {
+        failures.push(
+          `Lease Ownership Guard: task "${effectiveTaskId}" does not hold an active lease in ${stateFile}`
+        );
+      } else {
+        const ownFiles = new Set((ownTask.owned_files || []).map(normalizeRelativePath));
+        for (const entry of stagedEntries) {
+          for (const other of activeTasks) {
+            if (other.task_id === effectiveTaskId) continue;
+            const otherFiles = (other.owned_files || []).map(normalizeRelativePath);
+            if (otherFiles.includes(entry.path)) {
+              failures.push(
+                `Lease Ownership Guard: "${entry.path}" is locked by active task "${other.task_id}" (owner: ${other.owner})`
+              );
+            }
+          }
+          if (!allowOutside && !entry.path.startsWith(".swarm/") && !ownFiles.has(entry.path)) {
+            failures.push(
+              `Lease Ownership Guard: "${entry.path}" is outside task "${effectiveTaskId}" owned_files ([${[...ownFiles].join(", ")}]). Pass --allow-untracked-outside-swarm to override.`
+            );
+          }
+        }
+      }
+    } else if (activeTasks.length > 0) {
+      for (const entry of stagedEntries) {
+        if (entry.path.startsWith(".swarm/")) continue;
+        for (const task of activeTasks) {
+          const taskFiles = (task.owned_files || []).map(normalizeRelativePath);
+          if (taskFiles.includes(entry.path)) {
+            failures.push(
+              `Lease Ownership Guard: "${entry.path}" is locked by active task "${task.task_id}" (owner: ${task.owner}). Pass --task ${task.task_id} (or set SWARM_TASK_ID=${task.task_id}) or release the lease first.`
+            );
+          }
+        }
+      }
+    }
+  } else if (effectiveTaskId) {
+    failures.push(`Lease Ownership Guard: --task "${effectiveTaskId}" specified but .swarm/state.json does not exist.`);
+  }
+
+  // 3. Audit Report Guard
+  const repoVerifier = path.join(repoRoot, "scripts", "verify-report.cjs");
+  const fallbackVerifier = path.join(__dirname, "verify-report.cjs");
+  const verifierScript = fs.existsSync(repoVerifier) ? repoVerifier : fallbackVerifier;
+
+  for (const entry of stagedEntries) {
+    if (entry.status === "D") continue;
+    const base = path.posix.basename(entry.path).toLowerCase();
+    if (/audit-report.*\.md$/i.test(base)) {
+      const absReport = path.join(repoRoot, entry.path);
+      if (!fs.existsSync(verifierScript)) {
+        failures.push(`Audit Report Guard: verifier script missing (${verifierScript}) for "${entry.path}"`);
+        continue;
+      }
+      const verifyRes = spawnSync(process.execPath, [verifierScript, absReport, repoRoot], {
+        cwd: repoRoot,
+        encoding: "utf8",
+      });
+      if (verifyRes.status !== 0) {
+        const msg = (verifyRes.stderr || verifyRes.stdout || "verification failed").trim();
+        failures.push(`Audit Report Guard failed for "${entry.path}": ${msg}`);
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    for (const msg of failures) {
+      console.error(`ERROR: ${msg}`);
+    }
+    return 1;
+  }
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      checked_files: stagedEntries.length,
+      task_id: effectiveTaskId || null,
+    })
+  );
+  return 0;
+}
+
+function resolveGitHooksTarget(rawDir) {
+  const startDir = path.resolve(rawDir || process.cwd());
+  const repoRoot = ensureGitRepo(startDir);
+  const res = runGit(["rev-parse", "--git-path", "hooks"], repoRoot);
+  if (res.status !== 0) {
+    throw new Error(`Failed to resolve git hooks directory: ${(res.stderr || "").trim()}`);
+  }
+  const rawHooksPath = res.stdout.trim();
+  const hooksDir = path.isAbsolute(rawHooksPath) ? rawHooksPath : path.resolve(repoRoot, rawHooksPath);
+  return { repoRoot, hooksDir, hookPath: path.join(hooksDir, "pre-commit") };
+}
+
+function cmdHooksInstall(flags) {
+  const { repoRoot, hooksDir, hookPath } = resolveGitHooksTarget(typeof flags.dir === "string" ? flags.dir : process.cwd());
+  const force = Boolean(flags.force);
+
+  if (fs.existsSync(hookPath)) {
+    const existing = fs.readFileSync(hookPath, "utf8");
+    if (!existing.includes(HOOK_MARKER) && !force) {
+      throw new Error(
+        `Existing non-swarm pre-commit hook found at "${hookPath}". Refusing to overwrite without --force.`
+      );
+    }
+  }
+
+  fs.mkdirSync(hooksDir, { recursive: true });
+  const hookScript = [
+    "#!/usr/bin/env bash",
+    HOOK_MARKER,
+    "set -euo pipefail",
+    "",
+    'if [ "${SWARM_SKIP_HOOKS:-0}" = "1" ]; then',
+    "  exit 0",
+    "fi",
+    "",
+    "if ! command -v node >/dev/null 2>&1; then",
+    "  exit 0",
+    "fi",
+    "",
+    'if [ -f "scripts/swarm-cli.cjs" ]; then',
+    "  node scripts/swarm-cli.cjs lock verify-staged",
+    'elif [ -f ".swarm-config/scripts/swarm-cli.cjs" ]; then',
+    "  node .swarm-config/scripts/swarm-cli.cjs lock verify-staged",
+    "fi",
+    "",
+  ].join("\n");
+
+  fs.writeFileSync(hookPath, hookScript, "utf8");
+  fs.chmodSync(hookPath, 0o755);
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      installed: true,
+      repo_root: repoRoot,
+      hook_path: hookPath,
+      forced: force,
+    })
+  );
+  return 0;
+}
+
+function cmdHooksUninstall(flags) {
+  const { repoRoot, hookPath } = resolveGitHooksTarget(typeof flags.dir === "string" ? flags.dir : process.cwd());
+
+  if (!fs.existsSync(hookPath)) {
+    console.log(
+      JSON.stringify({
+        ok: true,
+        uninstalled: false,
+        reason: "not_installed",
+        repo_root: repoRoot,
+        hook_path: hookPath,
+      })
+    );
+    return 0;
+  }
+
+  const existing = fs.readFileSync(hookPath, "utf8");
+  if (!existing.includes(HOOK_MARKER)) {
+    throw new Error(
+      `Refusing to remove pre-commit hook at "${hookPath}": missing "${HOOK_MARKER}" marker.`
+    );
+  }
+
+  fs.unlinkSync(hookPath);
+  console.log(
+    JSON.stringify({
+      ok: true,
+      uninstalled: true,
+      repo_root: repoRoot,
+      hook_path: hookPath,
+    })
+  );
+  return 0;
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -818,7 +1129,15 @@ function main(argv) {
       if (sub === "acquire") return cmdLockAcquire(flags);
       if (sub === "check") return cmdLockCheck(flags);
       if (sub === "release") return cmdLockRelease(flags);
-      throw new Error(`Unknown lock subcommand "${sub}". Use acquire, check, or release.`);
+      if (sub === "verify-staged") return cmdLockVerifyStaged(flags);
+      throw new Error(`Unknown lock subcommand "${sub}". Use acquire, check, release, or verify-staged.`);
+    }
+    if (cmd === "hooks") {
+      const sub = args[1];
+      const flags = parseFlags(args.slice(2));
+      if (sub === "install") return cmdHooksInstall(flags);
+      if (sub === "uninstall") return cmdHooksUninstall(flags);
+      throw new Error(`Unknown hooks subcommand "${sub}". Use install or uninstall.`);
     }
     if (cmd === "worktree") {
       const sub = args[1];
