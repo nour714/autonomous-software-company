@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Software Company — Swarm Dashboard</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .meta { color: var(--muted); font-size: 0.875rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .kpi-label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi-value { font-size: 1.45rem; font-weight: 700; margin-top: 4px; color: var(--accent); }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 22px; overflow-x: auto; }
+    .panel h2 { margin: 0 0 14px 0; font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+    code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.82rem; }
+    .badge { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #334155; }
+    .badge-active { background: #0369a1; color: #e0f2fe; }
+    .badge-released { background: #166534; color: #dcfce7; }
+    .empty { color: var(--muted); text-align: center; padding: 18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Autonomous Software Company — Swarm Runtime Dashboard</h1>
+      <div class="meta">Generated: 2026-11-26T00:13:57.620Z</div>
+    </header>
+
+    <section class="kpi-grid" aria-label="Executive KPIs">
+      <div class="kpi"><div class="kpi-label">Total Tasks</div><div class="kpi-value">1</div></div>
+      <div class="kpi"><div class="kpi-label">Pass Rate</div><div class="kpi-value">100.0%</div></div>
+      <div class="kpi"><div class="kpi-label">Active Locks</div><div class="kpi-value">0</div></div>
+      <div class="kpi"><div class="kpi-label">Stalled Tasks</div><div class="kpi-value">0</div></div>
+      <div class="kpi"><div class="kpi-label">Total Tokens</div><div class="kpi-value">143,250</div></div>
+      <div class="kpi"><div class="kpi-label">Total Cost (USD)</div><div class="kpi-value">$0.5940</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tier Breakdown &amp; Average Duration</h2>
+      <svg width="100%" viewBox="0 0 600 155" role="img" aria-label="Tier breakdown bar chart">
+        
+        <text x="10" y="36" fill="#cbd5e1" font-size="13" font-family="ui-monospace, monospace">tier_0</text>
+        <rect x="90" y="20" width="320" height="22" rx="4" fill="#1e293b"/>
+        <rect x="90" y="20" width="0" height="22" rx="4" fill="#22c55e"/>
+        <text x="422" y="36" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, sans-serif">0 task(s) | avg 0.0s</text>
+      
+        <text x="10" y="80" fill="#cbd5e1" font-size="13" font-family="ui-monospace, monospace">tier_1</text>
+        <rect x="90" y="64" width="320" height="22" rx="4" fill="#1e293b"/>
+        <rect x="90" y="64" width="320" height="22" rx="4" fill="#38bdf8"/>
+        <text x="422" y="80" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, sans-serif">1 task(s) | avg 418.0s</text>
+      
+        <text x="10" y="124" fill="#cbd5e1" font-size="13" font-family="ui-monospace, monospace">tier_2</text>
+        <rect x="90" y="108" width="320" height="22" rx="4" fill="#1e293b"/>
+        <rect x="90" y="108" width="0" height="22" rx="4" fill="#f59e0b"/>
+        <text x="422" y="124" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, sans-serif">0 task(s) | avg 0.0s</text>
+      
+      </svg>
+    </section>
+
+    <section class="panel">
+      <h2>Active Tasks &amp; File Leases (state.json)</h2>
+      <table>
+        <thead>
+          <tr><th>Task ID</th><th>Owner</th><th>Mode / Tier</th><th>Lease</th><th>Status</th><th>Owned Files</th><th>Worktree / Branch</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" class="empty">No active or recorded tasks in state.json</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Recent Runs &amp; Cost Telemetry (metrics.jsonl)</h2>
+      <table>
+        <thead>
+          <tr><th>Timestamp</th><th>Type</th><th>Task ID</th><th>Agent / Model</th><th>Tier</th><th>Status</th><th>Duration</th><th>Tokens</th><th>Cost (USD)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+              <td>2026-11-25T11:22:10.622Z</td>
+              <td>task_summary</td>
+              <td><code>TASK-042</code></td>
+              <td>-</td>
+              <td>tier_1</td>
+              <td>completed</td>
+              <td>418.0s</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.554Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>release-gatekeeper / fast_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>22.0s</td>
+              <td>10,580</td>
+              <td>$0.0240</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.489Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>qa-tester / fast_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>52.0s</td>
+              <td>21,620</td>
+              <td>$0.0480</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.422Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>backend-critic / reasoning_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>36.0s</td>
+              <td>18,050</td>
+              <td>$0.0920</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.358Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>frontend-dev / builder_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>110.0s</td>
+              <td>29,990</td>
+              <td>$0.1320</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.288Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>backend-dev / builder_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>125.0s</td>
+              <td>32,520</td>
+              <td>$0.1450</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.222Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>arch-critic / reasoning_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>28.0s</td>
+              <td>13,440</td>
+              <td>$0.0640</td>
+            </tr>
+<tr>
+              <td>2026-11-25T11:22:10.160Z</td>
+              <td>agent_run</td>
+              <td><code>TASK-042</code></td>
+              <td>architect / reasoning_tier</td>
+              <td>tier_1</td>
+              <td>pass</td>
+              <td>45.0s</td>
+              <td>17,050</td>
+              <td>$0.0890</td>
+            </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>

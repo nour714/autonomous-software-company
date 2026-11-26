@@ -920,3 +920,116 @@ test("log-metric records tokens/model/cost and budget check enforces caps cleanl
   assert.match(reportRes.stdout, /Avg Cost \(tier_1\): \$0\.6000 \(1 tasks\)/);
   assert.match(reportRes.stdout, /Avg Cost \(tier_2\): \$4\.6000 \(1 tasks\)/);
 });
+
+test("dashboard generates self-contained HTML with KPIs, SVG chart, and XSS escaping", (t) => {
+  const tmpDir = makeTempProject();
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  assert.equal(runCli(["init", "--dir", tmpDir]).status, 0);
+
+  // Inject XSS payloads into state.json and metrics.jsonl
+  const xssTask = "TASK-<script>alert('xss')</script>";
+  const xssOwner = 'backend-dev" onclick="alert(1)';
+  assert.equal(
+    runCli([
+      "lock",
+      "acquire",
+      "--dir",
+      tmpDir,
+      "--task",
+      xssTask,
+      "--owner",
+      xssOwner,
+      "--files",
+      "src/app.js",
+    ]).status,
+    0
+  );
+
+  // Add optional worktree/branch metadata into state.json for display test
+  const statePath = path.join(tmpDir, ".swarm", "state.json");
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  state.tasks[0].branch = "swarm/test-branch";
+  state.tasks[0].worktree_path = ".swarm/worktrees/test";
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2), "utf8");
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "agent_run",
+      "--task",
+      xssTask,
+      "--agent",
+      "<img src=x onerror=alert(2)>",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "4000",
+      "--tokens-in",
+      "12000",
+      "--tokens-out",
+      "3000",
+      "--cost-usd",
+      "0.25",
+    ]).status,
+    0
+  );
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "task_summary",
+      "--task",
+      xssTask,
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "4000",
+      "--tests-passed",
+      "3",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  const outHtml = path.join(tmpDir, ".swarm", "custom-dashboard.html");
+  const dashRes = runCli(["dashboard", "--dir", tmpDir, "--out", outHtml]);
+  assert.equal(dashRes.status, 0, dashRes.stderr);
+  const dashJson = JSON.parse(dashRes.stdout.trim());
+  assert.equal(dashJson.ok, true);
+  assert.equal(dashJson.kpis.total_tasks, 1);
+  assert.equal(dashJson.kpis.active_locks, 1);
+  assert.equal(dashJson.kpis.total_tokens, 15000);
+  assert.equal(dashJson.kpis.total_cost_usd, 0.25);
+
+  const html = fs.readFileSync(outHtml, "utf8");
+  assert.ok(html.length > 500);
+  assert.match(html, /Total Tasks/);
+  assert.match(html, /Pass Rate/);
+  assert.match(html, /Active Locks/);
+  assert.match(html, /Stalled Tasks/);
+  assert.match(html, /Total Tokens/);
+  assert.match(html, /Total Cost \(USD\)/);
+  assert.match(html, /<svg\b/);
+  assert.match(html, /swarm\/test-branch/);
+
+  // Zero external CDN links
+  assert.doesNotMatch(html, /<(script|link)[^>]+https?:\/\//i);
+
+  // Strict XSS escaping check (raw payloads absent, escaped forms present)
+  assert.doesNotMatch(html, /<script>alert/);
+  assert.doesNotMatch(html, /<img src=x/);
+  assert.match(html, /&lt;script&gt;alert\(&#39;xss&#39;\)&lt;\/script&gt;/);
+  assert.match(html, /&lt;img src=x onerror=alert\(2\)&gt;/);
+});

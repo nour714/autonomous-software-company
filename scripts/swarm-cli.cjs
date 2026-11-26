@@ -34,6 +34,7 @@ function printUsage() {
   node scripts/swarm-cli.cjs hooks uninstall [--dir <repo-root>]
   node scripts/swarm-cli.cjs log-metric --type <task_summary|agent_run|stall> --task <TASK_ID> --tier <tier_0|tier_1|tier_2> --status <pass|fail|stalled> --duration-ms <number> [--agent <name>] [--tests-passed <n>] [--tests-failed <n>] [--tokens-in <n>] [--tokens-out <n>] [--model <name>] [--cost-usd <number>] [--dir <root>]
   node scripts/swarm-cli.cjs budget check [--max-usd <number>] [--max-tokens <number>] [--task <TASK_ID>] [--metrics <path>] [--dir <root>]
+  node scripts/swarm-cli.cjs dashboard [--state <path>] [--metrics <path>] [--out <path>] [--dir <root>]
   node scripts/swarm-cli.cjs check-stalls [--warn-min 3] [--escalate-min 5] [--dir <root>]
   node scripts/swarm-cli.cjs status [--dir <root>]
   node scripts/swarm-cli.cjs worktree create --task <TASK_ID> --owner <AGENT> [--base <branch>] [--dir <root>]
@@ -1220,6 +1221,300 @@ function cmdBudgetCheck(flags) {
   return exceeded ? 3 : 0;
 }
 
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normalizeTierKey(rawTier) {
+  if (rawTier === undefined || rawTier === null) return "tier_1";
+  const s = String(rawTier).trim().toLowerCase();
+  if (s === "0" || s === "tier_0" || s === "tier-0") return "tier_0";
+  if (s === "1" || s === "tier_1" || s === "tier-1") return "tier_1";
+  if (s === "2" || s === "tier_2" || s === "tier-2") return "tier_2";
+  return s || "tier_1";
+}
+
+function cmdDashboard(flags) {
+  const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+
+  let state = { schema_version: 1, tasks: [] };
+  if (flags.state !== undefined) {
+    if (flags.state === true || typeof flags.state !== "string" || flags.state.trim() === "") {
+      throw new Error("--state must be a non-empty file path");
+    }
+    const statePath = path.resolve(flags.state.trim());
+    state = readState(statePath);
+  } else if (fs.existsSync(paths.stateFile)) {
+    state = readState(paths.stateFile);
+  }
+
+  let metricsFile = paths.metricsFile;
+  if (flags.metrics !== undefined) {
+    if (flags.metrics === true || typeof flags.metrics !== "string" || flags.metrics.trim() === "") {
+      throw new Error("--metrics must be a non-empty file path");
+    }
+    metricsFile = path.resolve(flags.metrics.trim());
+    if (!fs.existsSync(metricsFile)) {
+      throw new Error(`Metrics file not found: ${metricsFile}`);
+    }
+  }
+
+  let outPath = path.join(paths.swarmDir, "dashboard.html");
+  if (flags.out !== undefined) {
+    if (flags.out === true || typeof flags.out !== "string" || flags.out.trim() === "") {
+      throw new Error("--out must be a non-empty file path");
+    }
+    outPath = path.resolve(flags.out.trim());
+  }
+
+  const records = [];
+  if (fs.existsSync(metricsFile)) {
+    const raw = fs.readFileSync(metricsFile, "utf8");
+    for (const line of raw.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        const rec = JSON.parse(line);
+        if (rec && typeof rec === "object") records.push(rec);
+      } catch {
+        // Skip malformed JSONL lines gracefully
+      }
+    }
+  }
+
+  const taskSummaries = records.filter((r) => r.record_type === "task_summary");
+  const agentRuns = records.filter((r) => r.record_type === "agent_run");
+  const stallEvents = records.filter((r) => r.record_type === "stall");
+
+  const totalTasks = taskSummaries.length > 0 ? taskSummaries.length : state.tasks.length;
+  const allTestRecords = [...taskSummaries, ...agentRuns].filter(
+    (r) => r.tests_status !== undefined && r.tests_status !== null && String(r.tests_status).trim() !== ""
+  );
+  const passedTests = allTestRecords.filter((r) => {
+    const s = String(r.tests_status).trim().toLowerCase();
+    return s === "passed" || s === "pass";
+  });
+  const totalEvaluations = allTestRecords.length > 0 ? allTestRecords.length : taskSummaries.length;
+  const passRate = totalEvaluations > 0 ? `${((passedTests.length / totalEvaluations) * 100).toFixed(1)}%` : "N/A";
+
+  const activeLocks = state.tasks.filter((t) => t.lease_status === "active").length;
+  const nowMs = Date.now();
+  let stateStalls = 0;
+  for (const t of state.tasks) {
+    if (t.lease_status !== "active") continue;
+    if (t.status === "completed" || t.status === "failed" || t.status === "cancelled") continue;
+    const tsMs = Date.parse(t.updated_at || t.last_heartbeat_at || t.started_at);
+    if (Number.isFinite(tsMs) && (nowMs - tsMs) / 60000 >= 3) {
+      stateStalls++;
+    }
+  }
+  const stalledTasks = stateStalls > 0 ? stateStalls : stallEvents.length;
+
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+  let totalCostUsdRaw = 0;
+  for (const r of records) {
+    if (r.tokens_in !== undefined && r.tokens_in !== null && Number.isFinite(Number(r.tokens_in))) {
+      totalTokensIn += Number(r.tokens_in);
+    }
+    if (r.tokens_out !== undefined && r.tokens_out !== null && Number.isFinite(Number(r.tokens_out))) {
+      totalTokensOut += Number(r.tokens_out);
+    }
+    if (r.cost_usd !== undefined && r.cost_usd !== null && Number.isFinite(Number(r.cost_usd))) {
+      totalCostUsdRaw += Number(r.cost_usd);
+    }
+  }
+  const totalTokens = totalTokensIn + totalTokensOut;
+  const totalCostUsd = Number(totalCostUsdRaw.toFixed(6));
+
+  const tierStats = {
+    tier_0: { count: 0, totalSeconds: 0 },
+    tier_1: { count: 0, totalSeconds: 0 },
+    tier_2: { count: 0, totalSeconds: 0 },
+  };
+  for (const t of taskSummaries) {
+    const tierKey = normalizeTierKey(t.risk_tier !== undefined ? t.risk_tier : t.tier);
+    if (!tierStats[tierKey]) {
+      tierStats[tierKey] = { count: 0, totalSeconds: 0 };
+    }
+    const durSec = Number(t.duration_seconds || (t.duration_ms ? t.duration_ms / 1000 : 0) || 0);
+    tierStats[tierKey].count++;
+    tierStats[tierKey].totalSeconds += durSec;
+  }
+
+  const maxTierCount = Math.max(1, ...Object.values(tierStats).map((s) => s.count));
+  const tierColors = { tier_0: "#22c55e", tier_1: "#38bdf8", tier_2: "#f59e0b" };
+  const tierRowsSvg = ["tier_0", "tier_1", "tier_2"]
+    .map((tier, idx) => {
+      const stat = tierStats[tier] || { count: 0, totalSeconds: 0 };
+      const y = 18 + idx * 44;
+      const barWidth = Math.round((stat.count / maxTierCount) * 320);
+      const avgSec = stat.count > 0 ? (stat.totalSeconds / stat.count).toFixed(1) : "0.0";
+      const color = tierColors[tier] || "#38bdf8";
+      return `
+        <text x="10" y="${y + 18}" fill="#cbd5e1" font-size="13" font-family="ui-monospace, monospace">${escapeHtml(tier)}</text>
+        <rect x="90" y="${y + 2}" width="320" height="22" rx="4" fill="#1e293b"/>
+        <rect x="90" y="${y + 2}" width="${barWidth}" height="22" rx="4" fill="${color}"/>
+        <text x="422" y="${y + 18}" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, sans-serif">${stat.count} task(s) | avg ${avgSec}s</text>
+      `;
+    })
+    .join("");
+
+  const stateRowsHtml =
+    state.tasks.length === 0
+      ? '<tr><td colspan="6" class="empty">No active or recorded tasks in state.json</td></tr>'
+      : state.tasks
+          .map((t) => {
+            const filesText = Array.isArray(t.owned_files) && t.owned_files.length > 0 ? t.owned_files.join(", ") : "-";
+            const wtText = [t.branch, t.worktree_path].filter(Boolean).join(" @ ") || "-";
+            return `<tr>
+              <td><code>${escapeHtml(t.task_id)}</code></td>
+              <td>${escapeHtml(t.owner)}</td>
+              <td>${escapeHtml(t.mode || "standard")} / ${escapeHtml(t.tier || "tier_1")}</td>
+              <td><span class="badge badge-${escapeHtml(t.lease_status || "unknown")}">${escapeHtml(t.lease_status || "-")}</span></td>
+              <td>${escapeHtml(t.status || "-")}</td>
+              <td><code>${escapeHtml(filesText)}</code></td>
+              <td><code>${escapeHtml(wtText)}</code></td>
+            </tr>`;
+          })
+          .join("\n");
+
+  const recentRunsHtml =
+    records.length === 0
+      ? '<tr><td colspan="8" class="empty">No telemetry records found in metrics.jsonl</td></tr>'
+      : records
+          .slice(-50)
+          .reverse()
+          .map((r) => {
+            const durSec = Number(r.duration_seconds || (r.duration_ms ? r.duration_ms / 1000 : 0) || 0).toFixed(1);
+            const tokTotal =
+              (Number.isFinite(Number(r.tokens_in)) ? Number(r.tokens_in) : 0) +
+              (Number.isFinite(Number(r.tokens_out)) ? Number(r.tokens_out) : 0);
+            const costText =
+              r.cost_usd !== undefined && r.cost_usd !== null && Number.isFinite(Number(r.cost_usd))
+                ? `$${Number(r.cost_usd).toFixed(4)}`
+                : "-";
+            const agentOrModel = [r.agent, r.model].filter(Boolean).join(" / ") || "-";
+            return `<tr>
+              <td>${escapeHtml(r.timestamp || "-")}</td>
+              <td>${escapeHtml(r.record_type || "-")}</td>
+              <td><code>${escapeHtml(r.task_id || "-")}</code></td>
+              <td>${escapeHtml(agentOrModel)}</td>
+              <td>${escapeHtml(normalizeTierKey(r.risk_tier || r.tier))}</td>
+              <td>${escapeHtml(r.status || r.outcome || "-")}</td>
+              <td>${escapeHtml(durSec)}s</td>
+              <td>${escapeHtml(tokTotal > 0 ? tokTotal.toLocaleString("en-US") : "-")}</td>
+              <td>${escapeHtml(costText)}</td>
+            </tr>`;
+          })
+          .join("\n");
+
+  const generatedAt = new Date().toISOString();
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Software Company — Swarm Dashboard</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .meta { color: var(--muted); font-size: 0.875rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .kpi-label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi-value { font-size: 1.45rem; font-weight: 700; margin-top: 4px; color: var(--accent); }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 22px; overflow-x: auto; }
+    .panel h2 { margin: 0 0 14px 0; font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+    code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.82rem; }
+    .badge { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #334155; }
+    .badge-active { background: #0369a1; color: #e0f2fe; }
+    .badge-released { background: #166534; color: #dcfce7; }
+    .empty { color: var(--muted); text-align: center; padding: 18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Autonomous Software Company — Swarm Runtime Dashboard</h1>
+      <div class="meta">Generated: ${escapeHtml(generatedAt)}</div>
+    </header>
+
+    <section class="kpi-grid" aria-label="Executive KPIs">
+      <div class="kpi"><div class="kpi-label">Total Tasks</div><div class="kpi-value">${escapeHtml(totalTasks)}</div></div>
+      <div class="kpi"><div class="kpi-label">Pass Rate</div><div class="kpi-value">${escapeHtml(passRate)}</div></div>
+      <div class="kpi"><div class="kpi-label">Active Locks</div><div class="kpi-value">${escapeHtml(activeLocks)}</div></div>
+      <div class="kpi"><div class="kpi-label">Stalled Tasks</div><div class="kpi-value">${escapeHtml(stalledTasks)}</div></div>
+      <div class="kpi"><div class="kpi-label">Total Tokens</div><div class="kpi-value">${escapeHtml(totalTokens.toLocaleString("en-US"))}</div></div>
+      <div class="kpi"><div class="kpi-label">Total Cost (USD)</div><div class="kpi-value">$${escapeHtml(totalCostUsd.toFixed(4))}</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tier Breakdown &amp; Average Duration</h2>
+      <svg width="100%" viewBox="0 0 600 155" role="img" aria-label="Tier breakdown bar chart">
+        ${tierRowsSvg}
+      </svg>
+    </section>
+
+    <section class="panel">
+      <h2>Active Tasks &amp; File Leases (state.json)</h2>
+      <table>
+        <thead>
+          <tr><th>Task ID</th><th>Owner</th><th>Mode / Tier</th><th>Lease</th><th>Status</th><th>Owned Files</th><th>Worktree / Branch</th></tr>
+        </thead>
+        <tbody>
+          ${stateRowsHtml}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Recent Runs &amp; Cost Telemetry (metrics.jsonl)</h2>
+      <table>
+        <thead>
+          <tr><th>Timestamp</th><th>Type</th><th>Task ID</th><th>Agent / Model</th><th>Tier</th><th>Status</th><th>Duration</th><th>Tokens</th><th>Cost (USD)</th></tr>
+        </thead>
+        <tbody>
+          ${recentRunsHtml}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>
+`;
+
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, html, "utf8");
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      out: outPath,
+      kpis: {
+        total_tasks: totalTasks,
+        pass_rate: passRate,
+        active_locks: activeLocks,
+        stalled_tasks: stalledTasks,
+        total_tokens: totalTokens,
+        total_cost_usd: totalCostUsd,
+      },
+    })
+  );
+  return 0;
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -1263,6 +1558,9 @@ function main(argv) {
       const flags = parseFlags(args.slice(2));
       if (sub === "check") return cmdBudgetCheck(flags);
       throw new Error(`Unknown budget subcommand "${sub}". Use check.`);
+    }
+    if (cmd === "dashboard") {
+      return cmdDashboard(parseFlags(args.slice(1)));
     }
     if (cmd === "log-metric") {
       return cmdLogMetric(parseFlags(args.slice(1)));

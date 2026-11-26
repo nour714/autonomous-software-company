@@ -565,6 +565,15 @@ echo "[PASS] Check 9: Audit report verifier test suite passed."
 echo "[CHECK] Check 10: Verifying examples/sample-benchmark/ fixtures..."
 bash "${REPO_ROOT}/scripts/swarm-report.sh" "${REPO_ROOT}/examples/sample-benchmark/metrics.jsonl" >/dev/null
 node "${REPO_ROOT}/scripts/verify-report.cjs" "${REPO_ROOT}/examples/sample-benchmark/audit-report.md" "${REPO_ROOT}"
+if [ ! -s "${REPO_ROOT}/examples/sample-benchmark/dashboard.html" ]; then
+  echo "  [FAIL] Missing or empty examples/sample-benchmark/dashboard.html" >&2
+  exit 1
+fi
+if ! grep -q "<svg" "${REPO_ROOT}/examples/sample-benchmark/dashboard.html" || \
+   ! grep -q "Total Tasks" "${REPO_ROOT}/examples/sample-benchmark/dashboard.html"; then
+  echo "  [FAIL] examples/sample-benchmark/dashboard.html missing expected SVG chart or KPI strip" >&2
+  exit 1
+fi
 echo "[PASS] Check 10: examples/sample-benchmark/ fixtures verified."
 
 echo "============================================================"
