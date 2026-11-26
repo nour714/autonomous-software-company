@@ -701,3 +701,222 @@ test("lock verify-staged validates staged audit-report markdown files", (t) => {
   assert.equal(goodReport.status, 0, goodReport.stderr);
   assert.equal(JSON.parse(goodReport.stdout.trim()).ok, true);
 });
+
+test("log-metric records tokens/model/cost and budget check enforces caps cleanly", (t) => {
+  const tmpDir = makeTempProject();
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  assert.equal(runCli(["init", "--dir", tmpDir]).status, 0);
+
+  // Reject negative cost and non-integer tokens
+  const badCost = runCli([
+    "log-metric",
+    "--dir",
+    tmpDir,
+    "--type",
+    "task_summary",
+    "--task",
+    "TASK-BUD-1",
+    "--tier",
+    "tier_1",
+    "--status",
+    "pass",
+    "--duration-ms",
+    "1000",
+    "--cost-usd",
+    "-0.5",
+  ]);
+  assert.equal(badCost.status, 1);
+
+  const badTokens = runCli([
+    "log-metric",
+    "--dir",
+    tmpDir,
+    "--type",
+    "task_summary",
+    "--task",
+    "TASK-BUD-1",
+    "--tier",
+    "tier_1",
+    "--status",
+    "pass",
+    "--duration-ms",
+    "1000",
+    "--tokens-in",
+    "12.5",
+  ]);
+  assert.equal(badTokens.status, 1);
+
+  // Log agent runs and task summary across two tasks
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "agent_run",
+      "--task",
+      "TASK-BUD-1",
+      "--agent",
+      "backend-dev",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "4500",
+      "--tokens-in",
+      "10000",
+      "--tokens-out",
+      "2500",
+      "--model",
+      "builder_tier",
+      "--cost-usd",
+      "0.42",
+      "--tests-passed",
+      "5",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "agent_run",
+      "--task",
+      "TASK-BUD-1",
+      "--agent",
+      "qa-tester",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "2000",
+      "--tokens-in",
+      "6000",
+      "--tokens-out",
+      "1500",
+      "--model",
+      "fast_tier",
+      "--cost-usd",
+      "0.18",
+      "--tests-passed",
+      "5",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "task_summary",
+      "--task",
+      "TASK-BUD-1",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "6500",
+      "--tests-passed",
+      "5",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "task_summary",
+      "--task",
+      "TASK-BUD-2",
+      "--tier",
+      "tier_2",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "9000",
+      "--tokens-in",
+      "50000",
+      "--tokens-out",
+      "10000",
+      "--model",
+      "reasoning_tier",
+      "--cost-usd",
+      "4.60",
+    ]).status,
+    0
+  );
+
+  // Task-scoped budget check passes cleanly (exit 0)
+  const taskPass = runCli([
+    "budget",
+    "check",
+    "--dir",
+    tmpDir,
+    "--task",
+    "TASK-BUD-1",
+    "--max-usd",
+    "1.0",
+    "--max-tokens",
+    "25000",
+  ]);
+  assert.equal(taskPass.status, 0, taskPass.stderr);
+  const taskPassJson = JSON.parse(taskPass.stdout.trim());
+  assert.deepEqual(taskPassJson, {
+    total_tokens_in: 16000,
+    total_tokens_out: 4000,
+    total_tokens: 20000,
+    total_cost_usd: 0.6,
+    exceeded: false,
+    recommendation: "within_budget",
+  });
+
+  // Global USD budget check exceeds --max-usd 5.0 (exit 3)
+  const usdFail = runCli(["budget", "check", "--dir", tmpDir, "--max-usd", "5.0"]);
+  assert.equal(usdFail.status, 3);
+  const usdFailJson = JSON.parse(usdFail.stdout.trim());
+  assert.equal(usdFailJson.total_cost_usd, 5.2);
+  assert.equal(usdFailJson.exceeded, true);
+  assert.equal(usdFailJson.recommendation, "downgrade_mode_or_halt");
+
+  // Token cap check exceeds --max-tokens 70000 (exit 3)
+  const tokFail = runCli(["budget", "check", "--dir", tmpDir, "--max-tokens", "70000"]);
+  assert.equal(tokFail.status, 3);
+  const tokFailJson = JSON.parse(tokFail.stdout.trim());
+  assert.equal(tokFailJson.total_tokens, 80000);
+  assert.equal(tokFailJson.exceeded, true);
+  assert.equal(tokFailJson.recommendation, "downgrade_mode_or_halt");
+
+  // swarm-report.sh renders Cost & Token Telemetry summary cleanly
+  const metricsFile = path.join(tmpDir, ".swarm", "metrics.jsonl");
+  const bashExe = resolveBashExecutable();
+  const reportRes = spawnSync(
+    bashExe,
+    [REPORT_SCRIPT_PATH.replace(/\\/g, "/"), metricsFile.replace(/\\/g, "/")],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  );
+  assert.equal(reportRes.status, 0, reportRes.stderr);
+  assert.match(reportRes.stdout, /Cost & Token Telemetry/);
+  assert.match(reportRes.stdout, /Total Tokens: 80000 \(in: 66000, out: 14000\)/);
+  assert.match(reportRes.stdout, /Total Cost \(USD\): \$5\.2000/);
+  assert.match(reportRes.stdout, /Avg Cost per Task: \$2\.6000 \(2 tasks\)/);
+  assert.match(reportRes.stdout, /Avg Cost \(tier_1\): \$0\.6000 \(1 tasks\)/);
+  assert.match(reportRes.stdout, /Avg Cost \(tier_2\): \$4\.6000 \(1 tasks\)/);
+});

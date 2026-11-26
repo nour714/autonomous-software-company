@@ -24,6 +24,12 @@ Test Pass Rate: 100.0% (8 passed)
 Review Cap Reached (2 rounds): 0 tasks
 Fallback Model Activations: 0
 Stall Detections / Pings: 0
+
+--- Cost & Token Telemetry ---
+  Total Tokens: 143250 (in: 120000, out: 23250)
+  Total Cost (USD): $0.5940
+  Avg Cost per Task: $0.5940 (1 tasks)
+  Avg Cost (tier_1): $0.5940 (1 tasks)
 ------------------------------------------------------------
 END-TO-END SPEEDUP: NOT MEASURED — RUNTIME UNAVAILABLE
 ============================================================
