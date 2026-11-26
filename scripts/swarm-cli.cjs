@@ -32,7 +32,8 @@ function printUsage() {
   node scripts/swarm-cli.cjs lock verify-staged [--task <TASK_ID>] [--allow-untracked-outside-swarm] [--dir <root>]
   node scripts/swarm-cli.cjs hooks install [--force] [--dir <repo-root>]
   node scripts/swarm-cli.cjs hooks uninstall [--dir <repo-root>]
-  node scripts/swarm-cli.cjs log-metric --type <task_summary|agent_run|stall> --task <TASK_ID> --tier <tier_0|tier_1|tier_2> --status <pass|fail|stalled> --duration-ms <number> [--agent <name>] [--tests-passed <n>] [--tests-failed <n>] [--dir <root>]
+  node scripts/swarm-cli.cjs log-metric --type <task_summary|agent_run|stall> --task <TASK_ID> --tier <tier_0|tier_1|tier_2> --status <pass|fail|stalled> --duration-ms <number> [--agent <name>] [--tests-passed <n>] [--tests-failed <n>] [--tokens-in <n>] [--tokens-out <n>] [--model <name>] [--cost-usd <number>] [--dir <root>]
+  node scripts/swarm-cli.cjs budget check [--max-usd <number>] [--max-tokens <number>] [--task <TASK_ID>] [--metrics <path>] [--dir <root>]
   node scripts/swarm-cli.cjs check-stalls [--warn-min 3] [--escalate-min 5] [--dir <root>]
   node scripts/swarm-cli.cjs status [--dir <root>]
   node scripts/swarm-cli.cjs worktree create --task <TASK_ID> --owner <AGENT> [--base <branch>] [--dir <root>]
@@ -320,6 +321,18 @@ function parseNonNegativeInt(raw, flagName) {
   return Number.parseInt(String(raw), 10);
 }
 
+function parseNonNegativeNumber(raw, flagName) {
+  if (raw === undefined) return undefined;
+  if (raw === true || String(raw).trim() === "") {
+    throw new Error(`Invalid number for ${flagName}: ${raw}`);
+  }
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num < 0) {
+    throw new Error(`Invalid non-negative number for ${flagName}: ${raw}`);
+  }
+  return num;
+}
+
 function cmdLogMetric(flags) {
   const type = typeof flags.type === "string" ? flags.type.trim() : "";
   const taskId = typeof flags.task === "string" ? flags.task.trim() : "";
@@ -348,6 +361,17 @@ function cmdLogMetric(flags) {
   const durationMs = Number(rawDuration);
   const testsPassed = parseNonNegativeInt(flags["tests-passed"], "--tests-passed");
   const testsFailed = parseNonNegativeInt(flags["tests-failed"], "--tests-failed");
+  const tokensIn = parseNonNegativeInt(flags["tokens-in"], "--tokens-in");
+  const tokensOut = parseNonNegativeInt(flags["tokens-out"], "--tokens-out");
+  const costUsd = parseNonNegativeNumber(flags["cost-usd"], "--cost-usd");
+
+  let modelName;
+  if (flags.model !== undefined) {
+    if (flags.model === true || typeof flags.model !== "string" || flags.model.trim() === "") {
+      throw new Error("Invalid --model: must be a non-empty string");
+    }
+    modelName = flags.model.trim();
+  }
 
   const record = {
     record_type: type,
@@ -377,6 +401,19 @@ function cmdLogMetric(flags) {
     record.tests_status = record.tests_failed > 0 || status === "fail" ? "failed" : "passed";
   } else if (status === "pass" || status === "fail") {
     record.tests_status = status === "pass" ? "passed" : "failed";
+  }
+
+  if (tokensIn !== undefined) {
+    record.tokens_in = tokensIn;
+  }
+  if (tokensOut !== undefined) {
+    record.tokens_out = tokensOut;
+  }
+  if (modelName !== undefined) {
+    record.model = modelName;
+  }
+  if (costUsd !== undefined) {
+    record.cost_usd = Number(costUsd.toFixed(6));
   }
 
   if (type === "stall" || status === "stalled") {
@@ -1110,6 +1147,79 @@ function cmdHooksUninstall(flags) {
   return 0;
 }
 
+function cmdBudgetCheck(flags) {
+  const maxUsd = parseNonNegativeNumber(flags["max-usd"], "--max-usd");
+  const maxTokens = parseNonNegativeInt(flags["max-tokens"], "--max-tokens");
+  const taskFilter = typeof flags.task === "string" ? flags.task.trim() : "";
+
+  if (flags.task === true || (flags.task !== undefined && !taskFilter)) {
+    throw new Error("--task must be a non-empty task ID");
+  }
+
+  let metricsFile;
+  if (flags.metrics !== undefined) {
+    if (flags.metrics === true || typeof flags.metrics !== "string" || flags.metrics.trim() === "") {
+      throw new Error("--metrics must be a non-empty file path");
+    }
+    metricsFile = path.resolve(flags.metrics.trim());
+    if (!fs.existsSync(metricsFile)) {
+      throw new Error(`Metrics file not found: ${metricsFile}`);
+    }
+  } else {
+    const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
+    metricsFile = paths.metricsFile;
+  }
+
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+  let totalCostUsdRaw = 0;
+
+  if (fs.existsSync(metricsFile)) {
+    const raw = fs.readFileSync(metricsFile, "utf8");
+    const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    for (const line of lines) {
+      let rec;
+      try {
+        rec = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (!rec || typeof rec !== "object") continue;
+      if (taskFilter && rec.task_id !== taskFilter) continue;
+
+      if (rec.tokens_in !== undefined && rec.tokens_in !== null && Number.isFinite(Number(rec.tokens_in))) {
+        totalTokensIn += Number(rec.tokens_in);
+      }
+      if (rec.tokens_out !== undefined && rec.tokens_out !== null && Number.isFinite(Number(rec.tokens_out))) {
+        totalTokensOut += Number(rec.tokens_out);
+      }
+      if (rec.cost_usd !== undefined && rec.cost_usd !== null && Number.isFinite(Number(rec.cost_usd))) {
+        totalCostUsdRaw += Number(rec.cost_usd);
+      }
+    }
+  }
+
+  const totalTokens = totalTokensIn + totalTokensOut;
+  const totalCostUsd = Number(totalCostUsdRaw.toFixed(6));
+
+  const usdExceeded = maxUsd !== undefined && totalCostUsd > maxUsd;
+  const tokensExceeded = maxTokens !== undefined && totalTokens > maxTokens;
+  const exceeded = usdExceeded || tokensExceeded;
+  const recommendation = exceeded ? "downgrade_mode_or_halt" : "within_budget";
+
+  console.log(
+    JSON.stringify({
+      total_tokens_in: totalTokensIn,
+      total_tokens_out: totalTokensOut,
+      total_tokens: totalTokens,
+      total_cost_usd: totalCostUsd,
+      exceeded,
+      recommendation,
+    })
+  );
+  return exceeded ? 3 : 0;
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -1147,6 +1257,12 @@ function main(argv) {
       if (sub === "merge") return cmdWorktreeMerge(flags);
       if (sub === "cleanup") return cmdWorktreeCleanup(flags);
       throw new Error(`Unknown worktree subcommand "${sub}". Use create, list, merge, or cleanup.`);
+    }
+    if (cmd === "budget") {
+      const sub = args[1];
+      const flags = parseFlags(args.slice(2));
+      if (sub === "check") return cmdBudgetCheck(flags);
+      throw new Error(`Unknown budget subcommand "${sub}". Use check.`);
     }
     if (cmd === "log-metric") {
       return cmdLogMetric(parseFlags(args.slice(1)));

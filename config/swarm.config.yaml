@@ -67,6 +67,11 @@ thinking_budgets:
   architecture_design: medium
   tier_2_critics: high
 
+budget_guardrails:
+  warn_usd: 1.50
+  max_usd_per_task: 5.00
+  max_tokens_per_task: 500000
+
 models:
   policy: "On the first verified quota, rate-limit, or model execution error, switch directly to model_fallback without an endless retry loop; if unavailable, report task as BLOCKED."
   tiers:

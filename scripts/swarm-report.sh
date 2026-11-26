@@ -175,7 +175,57 @@ try {
   }
   console.log(`Stall Detections / Pings: ${stallCount}`);
 
-  // 7. Overall Summary
+  // 7. Token & Cost Telemetry (rendered when token or cost fields are present)
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+  let totalCostUsd = 0;
+  let hasTokenTelemetry = false;
+  let hasCostTelemetry = false;
+  const tierCostTotals = { tier_0: 0, tier_1: 0, tier_2: 0 };
+
+  for (const r of [...taskSummaries, ...agentRuns, ...stallEvents]) {
+    if (r.tokens_in !== undefined && r.tokens_in !== null && Number.isFinite(Number(r.tokens_in))) {
+      totalTokensIn += Number(r.tokens_in);
+      hasTokenTelemetry = true;
+    }
+    if (r.tokens_out !== undefined && r.tokens_out !== null && Number.isFinite(Number(r.tokens_out))) {
+      totalTokensOut += Number(r.tokens_out);
+      hasTokenTelemetry = true;
+    }
+    if (r.cost_usd !== undefined && r.cost_usd !== null && Number.isFinite(Number(r.cost_usd))) {
+      const costVal = Number(r.cost_usd);
+      totalCostUsd += costVal;
+      hasCostTelemetry = true;
+      const tierKey = normalizeTier(r.risk_tier !== undefined ? r.risk_tier : r.tier);
+      tierCostTotals[tierKey] = (tierCostTotals[tierKey] || 0) + costVal;
+    }
+  }
+
+  if (hasTokenTelemetry || hasCostTelemetry) {
+    console.log("\n--- Cost & Token Telemetry ---");
+    if (hasTokenTelemetry) {
+      const totalTokens = totalTokensIn + totalTokensOut;
+      console.log(`  Total Tokens: ${totalTokens} (in: ${totalTokensIn}, out: ${totalTokensOut})`);
+    }
+    if (hasCostTelemetry) {
+      console.log(`  Total Cost (USD): $${totalCostUsd.toFixed(4)}`);
+      const taskCountForAvg = taskSummaries.length;
+      if (taskCountForAvg > 0) {
+        console.log(`  Avg Cost per Task: $${(totalCostUsd / taskCountForAvg).toFixed(4)} (${taskCountForAvg} tasks)`);
+      } else {
+        console.log("  Avg Cost per Task: N/A (0 task summaries)");
+      }
+      for (const tier of Object.keys(tierStats)) {
+        const stat = tierStats[tier];
+        if (stat.count > 0) {
+          const tierCost = tierCostTotals[tier] || 0;
+          console.log(`  Avg Cost (${tier}): $${(tierCost / stat.count).toFixed(4)} (${stat.count} tasks)`);
+        }
+      }
+    }
+  }
+
+  // 8. Overall Summary
   console.log("------------------------------------------------------------");
   console.log("END-TO-END SPEEDUP: NOT MEASURED — RUNTIME UNAVAILABLE");
   console.log("============================================================");
