@@ -11,15 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Run test suite
         run: npm test
 
       - name: Verify installer script
         run: SWARM_TARGET_DIR=/tmp/swarm-ci-install bash install.sh --verify
+
+      - name: Verify Claude Code & Cursor host adapters
+        run: |
+          node scripts/export-host.cjs --host claude-code --target /tmp/swarm-ci-claude --verify
+          node scripts/export-host.cjs --host cursor --target /tmp/swarm-ci-cursor --verify
+
+      - name: Verify HTML dashboard generation
+        run: |
+          node scripts/swarm-cli.cjs dashboard --metrics examples/sample-benchmark/metrics.jsonl --out /tmp/swarm-ci-dashboard.html
+          test -s /tmp/swarm-ci-dashboard.html

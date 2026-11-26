@@ -113,24 +113,30 @@ Squad agents read local project memory initialized by `scripts/swarm-cli.cjs ini
 
 ---
 
-## 8. Deterministic Runtime CLI & File Ownership
+## 8. Deterministic Runtime CLI, Worktrees, Guards & Dashboard
 
-Concurrency safety, metrics, and stall detection are enforced deterministically via [`scripts/swarm-cli.cjs`](scripts/swarm-cli.cjs) (zero external dependencies):
+Concurrency safety, git isolation, pre-commit security, cost/budget guardrails, and telemetry are enforced deterministically via [`scripts/swarm-cli.cjs`](scripts/swarm-cli.cjs) (zero external dependencies):
 - **Initialize Runtime:** `node scripts/swarm-cli.cjs init` creates `.swarm/state.json`, `.swarm/project-context.md`, `.swarm/metrics.jsonl`, and `.swarm/followups.md`.
 - **Atomic File Leases:** `lock acquire`, `lock check`, and `lock release` enforce single active writer per file, reject path traversal/`..`, enforce `max_files_per_task: 5`, and write `.swarm/state.json` atomically via `.swarm/state.json.tmp`.
-- **Structured Telemetry:** `log-metric` appends validated `agent_run`, `task_summary`, and `stall` JSONL records compatible with [`scripts/swarm-report.sh`](scripts/swarm-report.sh).
+- **Git Worktree Isolation (`worktree`):** `worktree create`, `worktree list`, `worktree merge` (dry-run conflict-checked via `git merge-tree --write-tree`), and `worktree cleanup --delete-branch` isolate parallel tracks into `.swarm/worktrees/<TASK_ID>` on `swarm/<TASK_ID>`.
+- **Zero-Trust Pre-Commit Hooks (`hooks install` & `lock verify-staged`):** `hooks install` sets up `.git/hooks/pre-commit` (`# managed-by: autonomous-software-company`) running `lock verify-staged` to block leaked secret files/tokens, cross-task lease violations, and invalid `*audit-report*.md` files (`SWARM_SKIP_HOOKS=1` override; `hooks uninstall` removes only managed hooks).
+- **Cost, Token & Budget Guardrails (`budget check`):** `log-metric` accepts optional `--tokens-in`, `--tokens-out`, `--model`, and `--cost-usd` telemetry; `budget check [--max-usd <n>] [--max-tokens <n>] [--task <TASK_ID>]` aggregates spend and exits `3` (`downgrade_mode_or_halt`) when exceeding caps (`budget_guardrails` defaults in [`config/swarm.config.yaml`](config/swarm.config.yaml)).
+- **Self-Contained HTML Dashboard (`dashboard`):** `node scripts/swarm-cli.cjs dashboard [--state <path>] [--metrics <path>] [--out <path>]` (or `npm run dashboard`) generates a single zero-CDN HTML report with KPI strip, inline SVG tier breakdown chart, lease table, and XSS-escaped telemetry logs.
 - **Deterministic Stall Checks:** `check-stalls` returns exit code `0` when healthy or exit code `2` with `{ warn, escalate }` JSON when tasks stall ($\ge 3$m / $\ge 5$m), waking `@monitor` strictly on demand.
 
 ---
 
-## 9. Quickstart & Installation
+## 9. Quickstart, Host Adapters & Installation
 
-Install skills, recursive `rules/` (`rules/references/*`), `agents/`, `config/`, and `scripts/` into your local environment (`~/.gemini/config/` or `$SWARM_TARGET_DIR`):
+Install or export skills, recursive `rules/` (`rules/references/*`), `agents/`, `config/`, and `scripts/` across **Antigravity** (`antigravity`, default), **Gemini CLI** (`gemini-cli`), **Claude Code** (`claude-code` -> `CLAUDE.md` + `.claude/agents/` + `.claude/skills/`), **Cursor** (`cursor` -> `.cursor/rules/*.mdc`), or `--host all` via [`scripts/export-host.cjs`](scripts/export-host.cjs):
 
 ### Windows Installation (PowerShell)
 ```powershell
-# Install and verify required target files
+# Install and verify required target files (default: antigravity)
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -Verify
+
+# Export for another host (gemini-cli | claude-code | cursor | all)
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Host claude-code -Verify
 
 # Dry-run inspection (no files written)
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -DryRun
@@ -138,9 +144,17 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -DryRun
 
 ### macOS / Linux Installation (Bash)
 ```bash
-# Install and verify required target files
+# Install and verify required target files (default: antigravity)
 chmod +x ./install.sh
 ./install.sh --verify
+
+# Export for another host (gemini-cli | claude-code | cursor | all)
+./install.sh --host claude-code --verify
+./install.sh --host cursor --verify
+
+# Or via npm convenience scripts
+npm run export:claude -- --target /path/to/project --verify
+npm run export:cursor -- --target /path/to/project --verify
 
 # Dry-run inspection (no files written)
 ./install.sh --dry-run
@@ -151,23 +165,25 @@ chmod +x ./install.sh
 ## 10. Verification, CI, Benchmarks & Audit Proof
 
 ### Full Test Suite (`npm test`)
-Runs smoke checks (skills, agents, links, zero orphans, installer parity, fixtures), audit-report schema tests, and deterministic runtime CLI tests:
+Runs smoke checks (skills, agents, links, zero orphans, installer parity, fixtures), audit-report schema tests, deterministic runtime CLI tests, and multi-host adapter tests:
 ```bash
 npm test
 ```
 
 Individual suites:
 ```bash
-npm run test:smoke    # bash scripts/smoke-test.sh
-npm run test:report   # node scripts/verify-report.test.cjs
-npm run test:cli      # node --test scripts/swarm-cli.test.cjs
+npm run test:smoke     # bash scripts/smoke-test.sh
+npm run test:report    # node scripts/verify-report.test.cjs
+npm run test:cli       # node --test scripts/swarm-cli.test.cjs
+npm run test:adapters  # node --test scripts/export-host.test.cjs
 node --test skills/security-audit/*.test.cjs
 ```
 
 ### Verified End-to-End Example Proof
-Inspect the verified benchmark and audit fixture under [`examples/sample-benchmark/`](examples/sample-benchmark/):
-- [`examples/sample-benchmark/metrics.jsonl`](examples/sample-benchmark/metrics.jsonl) — Complete `standard`-mode run emitted via `scripts/swarm-cli.cjs log-metric`
+Inspect the verified benchmark, HTML dashboard, and audit fixture under [`examples/sample-benchmark/`](examples/sample-benchmark/):
+- [`examples/sample-benchmark/metrics.jsonl`](examples/sample-benchmark/metrics.jsonl) — Complete `standard`-mode run with token and cost telemetry emitted via `scripts/swarm-cli.cjs log-metric`
 - [`examples/sample-benchmark/swarm-report-output.txt`](examples/sample-benchmark/swarm-report-output.txt) — Captured output from `bash scripts/swarm-report.sh examples/sample-benchmark/metrics.jsonl`
+- [`examples/sample-benchmark/dashboard.html`](examples/sample-benchmark/dashboard.html) — Self-contained HTML dashboard generated via `node scripts/swarm-cli.cjs dashboard`
 - [`examples/sample-benchmark/audit-report.md`](examples/sample-benchmark/audit-report.md) — Verified sample audit report passing `node scripts/verify-report.cjs examples/sample-benchmark/audit-report.md` (exit code `0`)
 
 ---

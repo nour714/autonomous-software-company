@@ -1,6 +1,6 @@
 {
   "name": "autonomous-software-company",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Hybrid Autonomous Engineering Harness with specialist agents and deterministic CLI runtime",
   "license": "MIT",
@@ -12,6 +12,9 @@
     "test:report": "node scripts/verify-report.test.cjs",
     "test:cli": "node --test scripts/swarm-cli.test.cjs",
     "test:adapters": "node --test scripts/export-host.test.cjs",
-    "test": "npm run test:smoke && npm run test:report && npm run test:cli && npm run test:adapters"
+    "test": "npm run test:smoke && npm run test:report && npm run test:cli && npm run test:adapters",
+    "dashboard": "node scripts/swarm-cli.cjs dashboard",
+    "export:claude": "node scripts/export-host.cjs --host claude-code",
+    "export:cursor": "node scripts/export-host.cjs --host cursor"
   }
 }
