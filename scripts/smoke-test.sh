@@ -355,7 +355,8 @@ const forbiddenModelRegex = /\b(claude-3-5-sonnet|claude-3-5-haiku|claude-3-opus
 const filesToCheckForModels = [
   path.join(repoRoot, "README.md"),
   path.join(repoRoot, "rules", "swarm-orchestration.md"),
-  path.join(repoRoot, "skills", "four-agent-swarm", "SKILL.md")
+  path.join(repoRoot, "skills", "four-agent-swarm", "SKILL.md"),
+  path.join(repoRoot, "config", "benchmark-procedure.md")
 ];
 
 let modelIdErrors = [];
@@ -370,7 +371,33 @@ for (const f of filesToCheckForModels) {
   });
 }
 
-report("5: Zero hard-coded provider model IDs in rules/docs/orchestration", modelIdErrors.length === 0, modelIdErrors);
+function collectMarkdownFiles(dirPath) {
+  if (!fs.existsSync(dirPath)) return [];
+  const results = [];
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const full = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...collectMarkdownFiles(full));
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+for (const dirName of ["agents", "rules", "skills"]) {
+  for (const mdFile of collectMarkdownFiles(path.join(repoRoot, dirName))) {
+    const content = fs.readFileSync(mdFile, "utf8");
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (/@coordinator\b/i.test(line)) {
+        modelIdErrors.push(`Residual @coordinator reference in ${path.relative(repoRoot, mdFile)} line ${idx + 1}: ${line.trim()}`);
+      }
+    });
+  }
+}
+
+report("5: Zero hard-coded provider model IDs and zero @coordinator references", modelIdErrors.length === 0, modelIdErrors);
 
 // -------------------------------------------------------------
 // Check 6: Trigger phrase preservation

@@ -35,7 +35,7 @@ Emitted by each individual agent upon completing a turn:
   "record_type": "agent_run",
   "task_id": "TASK-001",
   "agent": "backend-dev",
-  "model_used": "gemini-3.8-flash-high",
+  "model_used": "builder_tier",
   "fallback_used": false,
   "duration_seconds": 185,
   "files_modified": 2,
