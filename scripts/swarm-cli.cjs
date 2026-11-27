@@ -124,6 +124,37 @@ function writeStateAtomic(paths, state) {
   fs.renameSync(paths.stateTmpFile, paths.stateFile);
 }
 
+function ensureBomFreeGitignore(projectRoot) {
+  const gitignorePath = path.join(projectRoot, ".gitignore");
+  let raw = "";
+  let existed = false;
+  if (fs.existsSync(gitignorePath)) {
+    existed = true;
+    raw = fs.readFileSync(gitignorePath, "utf8");
+  }
+
+  const hadBom = raw.charCodeAt(0) === 0xfeff;
+  const clean = hadBom ? raw.slice(1) : raw;
+  const lines = clean.split(/\r?\n/);
+  const hasSwarmEntry = lines.some((line) => {
+    const trimmed = line.trim();
+    return trimmed === ".swarm/" || trimmed === ".swarm";
+  });
+
+  if (!existed || hadBom || !hasSwarmEntry) {
+    let nextContent = clean;
+    if (!hasSwarmEntry) {
+      if (nextContent.length > 0 && !nextContent.endsWith("\n")) {
+        nextContent += "\n";
+      }
+      nextContent += ".swarm/\n";
+    }
+    fs.writeFileSync(gitignorePath, nextContent, "utf8");
+    return true;
+  }
+  return false;
+}
+
 function cmdInit(flags) {
   const paths = getSwarmPaths(typeof flags.dir === "string" ? flags.dir : process.cwd());
   fs.mkdirSync(paths.swarmDir, { recursive: true });
@@ -161,7 +192,29 @@ function cmdInit(flags) {
     created.push(".swarm/followups.md");
   }
 
-  console.log(JSON.stringify({ ok: true, dir: paths.swarmDir, created }));
+  const gitignoreUpdated = ensureBomFreeGitignore(paths.root);
+
+  let hookStatus = "not_git_repo";
+  const inGitRepo =
+    fs.existsSync(path.join(paths.root, ".git")) || runGit(["rev-parse", "--git-dir"], paths.root).status === 0;
+  if (inGitRepo) {
+    if (flags["no-hooks"]) {
+      hookStatus = "skipped_flag";
+    } else {
+      const hookResult = installPreCommitHook(paths.root, { force: false, skipOnForeign: true });
+      hookStatus = hookResult.installed ? "installed" : "skipped_foreign_hook";
+    }
+  }
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      dir: paths.swarmDir,
+      created,
+      gitignore_updated: gitignoreUpdated,
+      hook_status: hookStatus,
+    })
+  );
   return 0;
 }
 
@@ -1063,13 +1116,17 @@ function resolveGitHooksTarget(rawDir) {
   return { repoRoot, hooksDir, hookPath: path.join(hooksDir, "pre-commit") };
 }
 
-function cmdHooksInstall(flags) {
-  const { repoRoot, hooksDir, hookPath } = resolveGitHooksTarget(typeof flags.dir === "string" ? flags.dir : process.cwd());
-  const force = Boolean(flags.force);
+function installPreCommitHook(rawDir, options = {}) {
+  const { force = false, skipOnForeign = false } = options;
+  const { repoRoot, hooksDir, hookPath } = resolveGitHooksTarget(rawDir);
 
   if (fs.existsSync(hookPath)) {
     const existing = fs.readFileSync(hookPath, "utf8");
     if (!existing.includes(HOOK_MARKER) && !force) {
+      if (skipOnForeign) {
+        console.error(`WARNING: Existing non-swarm pre-commit hook found at "${hookPath}"; skipping auto-install.`);
+        return { installed: false, skipped: "foreign_hook", repoRoot, hookPath, forced: false };
+      }
       throw new Error(
         `Existing non-swarm pre-commit hook found at "${hookPath}". Refusing to overwrite without --force.`
       );
@@ -1101,13 +1158,22 @@ function cmdHooksInstall(flags) {
   fs.writeFileSync(hookPath, hookScript, "utf8");
   fs.chmodSync(hookPath, 0o755);
 
+  return { installed: true, repoRoot, hookPath, forced: force };
+}
+
+function cmdHooksInstall(flags) {
+  const result = installPreCommitHook(typeof flags.dir === "string" ? flags.dir : process.cwd(), {
+    force: Boolean(flags.force),
+    skipOnForeign: false,
+  });
+
   console.log(
     JSON.stringify({
       ok: true,
-      installed: true,
-      repo_root: repoRoot,
-      hook_path: hookPath,
-      forced: force,
+      installed: result.installed,
+      repo_root: result.repoRoot,
+      hook_path: result.hookPath,
+      forced: result.forced,
     })
   );
   return 0;

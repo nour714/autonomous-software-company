@@ -1138,3 +1138,62 @@ test("budget check, dashboard, and swarm-report.sh deduplicate agent_run vs task
   assert.match(reportRes.stdout, /Total Tokens: 1000 \(in: 700, out: 300\)/);
   assert.match(reportRes.stdout, /Total Cost \(USD\): \$0\.0150/);
 });
+
+test("init auto-installs pre-commit hook in git repo unless --no-hooks is passed and preserves foreign hooks", (t) => {
+  const tmpAuto = makeTempProject();
+  const tmpSkip = makeTempProject();
+  const tmpForeign = makeTempProject();
+  t.after(() => {
+    fs.rmSync(tmpAuto, { recursive: true, force: true });
+    fs.rmSync(tmpSkip, { recursive: true, force: true });
+    fs.rmSync(tmpForeign, { recursive: true, force: true });
+  });
+
+  for (const dir of [tmpAuto, tmpSkip, tmpForeign]) {
+    assert.equal(spawnSync("git", ["init", "-b", "main"], { cwd: dir, encoding: "utf8" }).status, 0);
+  }
+
+  // 1. Auto-installs pre-commit hook in git repo
+  const autoRes = runCli(["init", "--dir", tmpAuto]);
+  assert.equal(autoRes.status, 0, autoRes.stderr);
+  assert.equal(JSON.parse(autoRes.stdout.trim()).hook_status, "installed");
+  const autoHookPath = path.join(tmpAuto, ".git", "hooks", "pre-commit");
+  assert.equal(fs.existsSync(autoHookPath), true);
+  assert.match(fs.readFileSync(autoHookPath, "utf8"), /# managed-by: autonomous-software-company/);
+
+  // 2. --no-hooks skips hook installation
+  const skipRes = runCli(["init", "--dir", tmpSkip, "--no-hooks"]);
+  assert.equal(skipRes.status, 0, skipRes.stderr);
+  assert.equal(JSON.parse(skipRes.stdout.trim()).hook_status, "skipped_flag");
+  assert.equal(fs.existsSync(path.join(tmpSkip, ".git", "hooks", "pre-commit")), false);
+
+  // 3. Existing non-swarm hook is preserved with warning (exit 0)
+  const foreignHookPath = path.join(tmpForeign, ".git", "hooks", "pre-commit");
+  fs.mkdirSync(path.dirname(foreignHookPath), { recursive: true });
+  fs.writeFileSync(foreignHookPath, "#!/usr/bin/env bash\necho user-hook\n", "utf8");
+  const foreignRes = runCli(["init", "--dir", tmpForeign]);
+  assert.equal(foreignRes.status, 0, foreignRes.stderr);
+  assert.equal(JSON.parse(foreignRes.stdout.trim()).hook_status, "skipped_foreign_hook");
+  assert.match(foreignRes.stderr, /WARNING:.*Existing non-swarm pre-commit hook/);
+  assert.match(fs.readFileSync(foreignHookPath, "utf8"), /user-hook/);
+});
+
+test("init strips leading UTF-8 BOM from .gitignore while ensuring .swarm/ entry", (t) => {
+  const tmpDir = makeTempProject();
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  const gitignorePath = path.join(tmpDir, ".gitignore");
+  // Write .gitignore with UTF-8 BOM (EF BB BF)
+  const bomBuffer = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("node_modules/\n", "utf8")]);
+  fs.writeFileSync(gitignorePath, bomBuffer);
+
+  const res = runCli(["init", "--dir", tmpDir]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(JSON.parse(res.stdout.trim()).gitignore_updated, true);
+
+  const rawBytes = fs.readFileSync(gitignorePath);
+  assert.notEqual(rawBytes[0], 0xef, "UTF-8 BOM must be stripped from .gitignore");
+  const text = rawBytes.toString("utf8");
+  assert.equal(text.charCodeAt(0) === 0xfeff, false);
+  assert.match(text, /^node_modules\/\r?\n\.swarm\/\r?\n$/);
+});
