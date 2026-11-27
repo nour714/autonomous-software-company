@@ -884,6 +884,7 @@ test("log-metric records tokens/model/cost and budget check enforces caps cleanl
     total_tokens_out: 4000,
     total_tokens: 20000,
     total_cost_usd: 0.6,
+    source_records_counted: 2,
     exceeded: false,
     recommendation: "within_budget",
   });
@@ -1032,4 +1033,108 @@ test("dashboard generates self-contained HTML with KPIs, SVG chart, and XSS esca
   assert.doesNotMatch(html, /<img src=x/);
   assert.match(html, /&lt;script&gt;alert\(&#39;xss&#39;\)&lt;\/script&gt;/);
   assert.match(html, /&lt;img src=x onerror=alert\(2\)&gt;/);
+});
+
+test("budget check, dashboard, and swarm-report.sh deduplicate agent_run vs task_summary telemetry", (t) => {
+  const tmpDir = makeTempProject();
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  assert.equal(runCli(["init", "--dir", tmpDir]).status, 0);
+
+  // Single task logs BOTH agent_run ($0.015, 1000 tokens) and task_summary ($0.015, 1000 tokens)
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "agent_run",
+      "--task",
+      "TASK-DEDUP-1",
+      "--agent",
+      "backend-dev",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "3000",
+      "--tokens-in",
+      "700",
+      "--tokens-out",
+      "300",
+      "--cost-usd",
+      "0.015",
+      "--tests-passed",
+      "2",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  assert.equal(
+    runCli([
+      "log-metric",
+      "--dir",
+      tmpDir,
+      "--type",
+      "task_summary",
+      "--task",
+      "TASK-DEDUP-1",
+      "--tier",
+      "tier_1",
+      "--status",
+      "pass",
+      "--duration-ms",
+      "3000",
+      "--tokens-in",
+      "700",
+      "--tokens-out",
+      "300",
+      "--cost-usd",
+      "0.015",
+      "--tests-passed",
+      "2",
+      "--tests-failed",
+      "0",
+    ]).status,
+    0
+  );
+
+  // 1. budget check counts only 1 source record ($0.015 / 1000 tokens, NOT $0.030 / 2000)
+  const budgetRes = runCli(["budget", "check", "--dir", tmpDir, "--max-usd", "0.02"]);
+  assert.equal(budgetRes.status, 0, budgetRes.stderr);
+  const budgetJson = JSON.parse(budgetRes.stdout.trim());
+  assert.deepEqual(budgetJson, {
+    total_tokens_in: 700,
+    total_tokens_out: 300,
+    total_tokens: 1000,
+    total_cost_usd: 0.015,
+    source_records_counted: 1,
+    exceeded: false,
+    recommendation: "within_budget",
+  });
+
+  // 2. dashboard reports deduplicated KPIs
+  const outHtml = path.join(tmpDir, ".swarm", "dedup-dashboard.html");
+  const dashRes = runCli(["dashboard", "--dir", tmpDir, "--out", outHtml]);
+  assert.equal(dashRes.status, 0, dashRes.stderr);
+  const dashJson = JSON.parse(dashRes.stdout.trim());
+  assert.equal(dashJson.kpis.total_tokens, 1000);
+  assert.equal(dashJson.kpis.total_cost_usd, 0.015);
+  const html = fs.readFileSync(outHtml, "utf8");
+  assert.match(html, /\$0\.0150/);
+
+  // 3. swarm-report.sh reports deduplicated totals
+  const metricsFile = path.join(tmpDir, ".swarm", "metrics.jsonl");
+  const bashExe = resolveBashExecutable();
+  const reportRes = spawnSync(
+    bashExe,
+    [REPORT_SCRIPT_PATH.replace(/\\/g, "/"), metricsFile.replace(/\\/g, "/")],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  );
+  assert.equal(reportRes.status, 0, reportRes.stderr);
+  assert.match(reportRes.stdout, /Total Tokens: 1000 \(in: 700, out: 300\)/);
+  assert.match(reportRes.stdout, /Total Cost \(USD\): \$0\.0150/);
 });

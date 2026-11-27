@@ -175,7 +175,14 @@ try {
   }
   console.log(`Stall Detections / Pings: ${stallCount}`);
 
-  // 7. Token & Cost Telemetry (rendered when token or cost fields are present)
+  // 7. Token & Cost Telemetry (prefer agent_run per task_id; fall back to task_summary only if no agent_run exists)
+  const tasksWithAgentRuns = new Set();
+  for (const r of agentRuns) {
+    if (r && r.task_id) {
+      tasksWithAgentRuns.add(r.task_id);
+    }
+  }
+
   let totalTokensIn = 0;
   let totalTokensOut = 0;
   let totalCostUsd = 0;
@@ -184,6 +191,9 @@ try {
   const tierCostTotals = { tier_0: 0, tier_1: 0, tier_2: 0 };
 
   for (const r of [...taskSummaries, ...agentRuns, ...stallEvents]) {
+    if (r.record_type === "task_summary" && r.task_id && tasksWithAgentRuns.has(r.task_id)) {
+      continue;
+    }
     if (r.tokens_in !== undefined && r.tokens_in !== null && Number.isFinite(Number(r.tokens_in))) {
       totalTokensIn += Number(r.tokens_in);
       hasTokenTelemetry = true;

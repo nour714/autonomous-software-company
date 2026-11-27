@@ -1148,6 +1148,52 @@ function cmdHooksUninstall(flags) {
   return 0;
 }
 
+function aggregateTokenCostMetrics(records) {
+  const tasksWithAgentRuns = new Set();
+  for (const rec of records) {
+    if (rec && rec.record_type === "agent_run" && rec.task_id) {
+      tasksWithAgentRuns.add(rec.task_id);
+    }
+  }
+
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+  let totalCostUsdRaw = 0;
+  let sourceRecordsCounted = 0;
+
+  for (const rec of records) {
+    if (!rec || typeof rec !== "object") continue;
+    if (rec.record_type === "task_summary" && rec.task_id && tasksWithAgentRuns.has(rec.task_id)) {
+      continue;
+    }
+
+    let hasTelemetry = false;
+    if (rec.tokens_in !== undefined && rec.tokens_in !== null && Number.isFinite(Number(rec.tokens_in))) {
+      totalTokensIn += Number(rec.tokens_in);
+      hasTelemetry = true;
+    }
+    if (rec.tokens_out !== undefined && rec.tokens_out !== null && Number.isFinite(Number(rec.tokens_out))) {
+      totalTokensOut += Number(rec.tokens_out);
+      hasTelemetry = true;
+    }
+    if (rec.cost_usd !== undefined && rec.cost_usd !== null && Number.isFinite(Number(rec.cost_usd))) {
+      totalCostUsdRaw += Number(rec.cost_usd);
+      hasTelemetry = true;
+    }
+    if (hasTelemetry) {
+      sourceRecordsCounted++;
+    }
+  }
+
+  return {
+    totalTokensIn,
+    totalTokensOut,
+    totalTokens: totalTokensIn + totalTokensOut,
+    totalCostUsd: Number(totalCostUsdRaw.toFixed(6)),
+    sourceRecordsCounted,
+  };
+}
+
 function cmdBudgetCheck(flags) {
   const maxUsd = parseNonNegativeNumber(flags["max-usd"], "--max-usd");
   const maxTokens = parseNonNegativeInt(flags["max-tokens"], "--max-tokens");
@@ -1171,10 +1217,7 @@ function cmdBudgetCheck(flags) {
     metricsFile = paths.metricsFile;
   }
 
-  let totalTokensIn = 0;
-  let totalTokensOut = 0;
-  let totalCostUsdRaw = 0;
-
+  const matchedRecords = [];
   if (fs.existsSync(metricsFile)) {
     const raw = fs.readFileSync(metricsFile, "utf8");
     const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
@@ -1187,21 +1230,17 @@ function cmdBudgetCheck(flags) {
       }
       if (!rec || typeof rec !== "object") continue;
       if (taskFilter && rec.task_id !== taskFilter) continue;
-
-      if (rec.tokens_in !== undefined && rec.tokens_in !== null && Number.isFinite(Number(rec.tokens_in))) {
-        totalTokensIn += Number(rec.tokens_in);
-      }
-      if (rec.tokens_out !== undefined && rec.tokens_out !== null && Number.isFinite(Number(rec.tokens_out))) {
-        totalTokensOut += Number(rec.tokens_out);
-      }
-      if (rec.cost_usd !== undefined && rec.cost_usd !== null && Number.isFinite(Number(rec.cost_usd))) {
-        totalCostUsdRaw += Number(rec.cost_usd);
-      }
+      matchedRecords.push(rec);
     }
   }
 
-  const totalTokens = totalTokensIn + totalTokensOut;
-  const totalCostUsd = Number(totalCostUsdRaw.toFixed(6));
+  const {
+    totalTokensIn,
+    totalTokensOut,
+    totalTokens,
+    totalCostUsd,
+    sourceRecordsCounted,
+  } = aggregateTokenCostMetrics(matchedRecords);
 
   const usdExceeded = maxUsd !== undefined && totalCostUsd > maxUsd;
   const tokensExceeded = maxTokens !== undefined && totalTokens > maxTokens;
@@ -1214,6 +1253,7 @@ function cmdBudgetCheck(flags) {
       total_tokens_out: totalTokensOut,
       total_tokens: totalTokens,
       total_cost_usd: totalCostUsd,
+      source_records_counted: sourceRecordsCounted,
       exceeded,
       recommendation,
     })
@@ -1314,22 +1354,12 @@ function cmdDashboard(flags) {
   }
   const stalledTasks = stateStalls > 0 ? stateStalls : stallEvents.length;
 
-  let totalTokensIn = 0;
-  let totalTokensOut = 0;
-  let totalCostUsdRaw = 0;
-  for (const r of records) {
-    if (r.tokens_in !== undefined && r.tokens_in !== null && Number.isFinite(Number(r.tokens_in))) {
-      totalTokensIn += Number(r.tokens_in);
-    }
-    if (r.tokens_out !== undefined && r.tokens_out !== null && Number.isFinite(Number(r.tokens_out))) {
-      totalTokensOut += Number(r.tokens_out);
-    }
-    if (r.cost_usd !== undefined && r.cost_usd !== null && Number.isFinite(Number(r.cost_usd))) {
-      totalCostUsdRaw += Number(r.cost_usd);
-    }
-  }
-  const totalTokens = totalTokensIn + totalTokensOut;
-  const totalCostUsd = Number(totalCostUsdRaw.toFixed(6));
+  const {
+    totalTokensIn,
+    totalTokensOut,
+    totalTokens,
+    totalCostUsd,
+  } = aggregateTokenCostMetrics(records);
 
   const tierStats = {
     tier_0: { count: 0, totalSeconds: 0 },
